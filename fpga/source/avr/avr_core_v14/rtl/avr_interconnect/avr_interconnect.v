@@ -176,12 +176,16 @@ assign  msts_dbusout = (ramre) ?
 function[LP_MST_NUM_REG_WIDTH-1:0] fn_arb;
 input [num_of_msts*LP_MSTS_OUTS_WIDTH-1:0] msts_outs_i;
 integer i;
+integer found;
 begin
  fn_arb = {LP_MST_NUM_REG_WIDTH{1'b0}};
+ found = 0;
  for(i = 0 ; i < num_of_msts; i = i +1 ) begin  : search_for_brq_label
+  if(found == 0)
   if(msts_outs_i[i*LP_MSTS_OUTS_WIDTH+(16+8+1)] || msts_outs_i[i*LP_MSTS_OUTS_WIDTH+(16+8)]) begin // ramre=1'b1 or ramwe=1'b1 
    fn_arb = i[LP_MST_NUM_REG_WIDTH-1:0];
-   disable search_for_brq_label; 
+   found = 1;
+   //disable search_for_brq_label; 
   end 
  end // search_for_brq_label
 end
@@ -192,13 +196,17 @@ endfunction // fn_arb
 function fn_arb_det_req;
 input [num_of_msts*LP_MSTS_OUTS_WIDTH-1:0]   msts_outs_i;
 integer i;
+integer found;
 reg done;
 begin
 fn_arb_det_req = 1'b0;
+found = 0;
 for(i = 0 ; i < num_of_msts; i = i +1 ) begin : search_for_brq_label
+ if(found == 0)
  if(msts_outs_i[i*LP_MSTS_OUTS_WIDTH + (16+8+1)] || msts_outs_i[i*LP_MSTS_OUTS_WIDTH + (16+8)]) begin // ramre=1'b1 or ramwe=1'b1 
   fn_arb_det_req = 1'b1;
-  disable search_for_brq_label; 
+  found = 1;
+  //disable search_for_brq_label; 
  end 
 end // search_for_brq_label
 end
@@ -211,13 +219,17 @@ input [num_of_msts*LP_MSTS_OUTS_WIDTH-1:0] msts_outs_i;
 input [LP_MST_NUM_REG_WIDTH-1:0]           mst_num;    
 integer i;
 integer j;
+integer found;
 begin
 fn_arb_sel_bus = {LP_MSTS_OUTS_WIDTH{1'b0}};
  if(fn_arb_det_req(msts_outs_i)) begin // At least one master requests the bus
+  found = 0;
   for(i = 0 ; i < num_of_msts; i = i + 1 ) begin  : bus_mux_label
+   if(found == 0)
    if(i[LP_MST_NUM_REG_WIDTH-1:0] == mst_num) begin
      for(j = 0 ; j < LP_MSTS_OUTS_WIDTH; j = j + 1 ) begin fn_arb_sel_bus[j] = msts_outs_i[i*LP_MSTS_OUTS_WIDTH+j]; end
-     disable bus_mux_label; 
+     found = 1;
+     //disable bus_mux_label; 
    end 
   end // bus_mux_label
 end 

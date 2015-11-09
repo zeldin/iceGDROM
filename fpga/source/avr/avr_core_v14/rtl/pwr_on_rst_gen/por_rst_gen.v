@@ -26,7 +26,7 @@ module por_rst_gen #(parameter  tech = 0)
 			       tech == c_tech_virtex_5  | 
 			       tech == c_tech_spartan_3;
 			      
-   localparam c_altera_used = c_tech_acex; 			      
+   localparam c_altera_used = tech == c_tech_acex; 			      
 			      
    
    wire [2:0]  rst_chain_current;
@@ -43,7 +43,6 @@ module por_rst_gen #(parameter  tech = 0)
    generate
       if (!c_xilinx_used && !c_altera_used)
       begin : impl_gen
-/*         
          always @(negedge por_n_i or posedge clk)
          begin: reset_dffs
             if (!por_n_i)		// Reset
@@ -51,7 +50,6 @@ module por_rst_gen #(parameter  tech = 0)
             else 		// Clock
                rst_chain_current <= rst_chain_next;
          end
-*/         
       end
    endgenerate
    

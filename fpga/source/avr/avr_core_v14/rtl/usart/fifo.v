@@ -123,7 +123,7 @@ assign w_almost_full = ((wr_cnt_current[LP_CNT_WIDTH-1] == rd_cnt_current[LP_CNT
 assign w_full  = (wr_cnt_current[LP_CNT_WIDTH-1] != rd_cnt_current[LP_CNT_WIDTH-1] && 
                   wr_cnt_current[LP_CNT_WIDTH-2:0] == rd_cnt_current[LP_CNT_WIDTH-2:0])? 1'b1 : 1'b0;
 	
-// pragma translate_off				  
+// synopsys translate_off				  
 always@(posedge clk)
  begin	
 	 
@@ -140,6 +140,6 @@ always@(posedge clk)
    end     
    
  end				  
-// pragma translate_on
+// synopsys translate_on
 				  
 endmodule // fifo
