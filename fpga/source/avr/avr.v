@@ -35,6 +35,9 @@ module avr (
 
 parameter pm_size = 1;
 parameter dm_size = 1;
+parameter impl_avr109 = 0;
+parameter CLK_FREQUENCY = 1000000;
+parameter AVR109_BAUD_RATE = 19200;
 parameter sram_address = 16'hE000;
 parameter sram_size    = 1024;
 parameter pm_init_low = "";
@@ -89,6 +92,18 @@ wire                  sclen;
  wire[7:0]               dm_din;
  wire                    dm_we;
 
+
+   // Bootloader interface
+   wire        intercept_mode;
+   wire        prog_mode;
+   wire [15:0] prog_addr;
+   wire [15:0] prog_data;
+   wire        prog_low;
+   wire        prog_high;
+
+   wire        txd_core;
+   wire        txd_avr109;
+
  wire                    clkn;
 
  wire 			 pwr_on_nrst;
@@ -96,12 +111,14 @@ wire                  sclen;
  wire wdt_wdovf;
 
 
+assign txd = (intercept_mode? txd_avr109 : txd_core);
+
 rst_gen #(.rst_high(rst_act_high))
    rst_gen_inst(
 	        // Clock inputs
 		.cp2	    (clk),
 		// Reset inputs
-	        .nrst       (nrst),
+	        .nrst       (nrst & ~prog_mode),
 		.npwrrst    (pwr_on_nrst),  // !!!! From the POWER-ON reset generator
 		.wdovf      (wdt_wdovf),
 		.jtagrst    (1'b0),
@@ -295,13 +312,13 @@ ram_data_rg ram_data_rg_inst(
 
 
 // PM interface
-assign pm_adr = core_pc;
+assign pm_adr = (prog_mode? prog_addr : core_pc);
 assign core_inst         = pm_din[15:0];
 
 // PM data output
-assign pm_dout = 16'h0000;
-assign pm_we_h = 1'b0;
-assign pm_we_l = 1'b0;
+assign pm_dout = (prog_mode? prog_data : 16'h0000);
+assign pm_we_h = prog_mode & prog_high;
+assign pm_we_l = prog_mode & prog_low;
 
 
 // DM interface
@@ -336,8 +353,8 @@ peripherals #(.irqs_width(irqs_width))
 		     .wdri(core_wdri),
 
 		     // UART related
-		     .rxd(rxd),
-		     .txd(txd),
+		     .rxd(intercept_mode | rxd),
+		     .txd(txd_core),
 
 		     // SPI related
 		     .misoi(miso),
@@ -422,12 +439,36 @@ tri_buf tri_buf_porta_inst[7:0](
 	       .en  (porta_ddrx) ,
 	       .pin (porta)
 	       );
-    
+
 por_rst_gen #(.tech(c_tech_generic)) por_rst_gen_inst(
    .clk       (clk),
    .por_n_i   (1'b1),
    .por_n_o   (pwr_on_nrst),
    .por_n_o_g ()
    );
+
+generate
+if(impl_avr109) begin : avr109_is_implemented
+
+   avr109 #(.CLK_FREQUENCY(CLK_FREQUENCY), .BAUD_RATE(AVR109_BAUD_RATE))
+     avr109_inst(.rst(~pwr_on_nrst), .clk(clk),
+		 .rxd(rxd), .txd(txd_avr109), .intercept_mode(intercept_mode),
+		 .prog_mode(prog_mode), .prog_addr(prog_addr),
+		 .prog_data(prog_data), .prog_data_in(pm_din),
+		 .prog_low(prog_low), .prog_high(prog_high));
+
+end
+else begin : avr109_is_not_implemented
+
+   assign intercept_mode = 1'b0;
+   assign prog_mode = 1'b0;
+   assign prog_addr = 16'h0000;
+   assign prog_data = 16'h0000;
+   assign prog_low = 1'b0;
+   assign prog_high = 1'b0;
+   assign txd_avr109 = 1'b1;
+
+end
+endgenerate
 
 endmodule // avr

@@ -14,6 +14,9 @@ module top (
 
    avr #(.pm_size(1),
 	 .dm_size(1),
+	 .impl_avr109(1),
+	 .CLK_FREQUENCY(12000000),
+	 .AVR109_BAUD_RATE(115200),
 	 .pm_init_low("pmem_low.hex"),
 	 .pm_init_high("pmem_high.hex"),
 	 )

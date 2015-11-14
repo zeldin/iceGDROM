@@ -5,6 +5,9 @@ read_verilog avr/avr.v
 read_verilog avr/peripherals.v
 read_verilog avr/snc_ram.v
 read_verilog avr/tri_buf.v
+read_verilog avr/avr109.v
+read_verilog avr/avr109tx.v
+read_verilog avr/avr109rx.v
 hierarchy -top top \
 	-libdir avr/avr_core_v14/rtl/common \
 	-libdir avr/avr_core_v14/rtl/core \
