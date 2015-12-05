@@ -103,6 +103,7 @@ wire                  sclen;
 
    wire        txd_core;
    wire        txd_avr109;
+   reg 	       txd_q;
 
  wire                    clkn;
 
@@ -111,7 +112,7 @@ wire                  sclen;
  wire wdt_wdovf;
 
 
-assign txd = (intercept_mode? txd_avr109 : txd_core);
+   assign txd = txd_q;
 
 rst_gen #(.rst_high(rst_act_high))
    rst_gen_inst(
@@ -470,5 +471,14 @@ else begin : avr109_is_not_implemented
 
 end
 endgenerate
+
+always @(posedge clk) begin
+   if (~pwr_on_nrst)
+     txd_q <= 1'b1;
+   else if (intercept_mode)
+     txd_q <= txd_avr109;
+   else
+     txd_q <= txd_core;
+end
 
 endmodule // avr
