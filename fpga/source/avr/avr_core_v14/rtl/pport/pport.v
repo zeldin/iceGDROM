@@ -121,25 +121,25 @@ localparam LP_WBE_WIDTH      = (port_width%8) ? (port_width/8+1) : (port_width/8
 
 
 assign dbus_out    =  (portx_dout &  {8{sel_portx}} & {8{!portx_dm_loc[0]}}) |
-                      (ddrx_dout  &   {8{sel_pinx}} & {8{!ddrx_dm_loc[0]}}) |
-                      (resync_out &   {8{sel_ddrx}} & {8{!pinx_dm_loc[0]}}); 
+                      (ddrx_dout  &   {8{sel_ddrx}} & {8{!ddrx_dm_loc[0]}}) |
+                      (resync_out &   {8{sel_pinx}} & {8{!pinx_dm_loc[0]}}); 
 
 assign dm_dbus_out =  (portx_dout &  {8{sel_portx}} & {8{portx_dm_loc[0]}}) |
-		      (ddrx_dout  &   {8{sel_pinx}} & {8{ddrx_dm_loc[0]}}) |
-		      (resync_out &   {8{sel_ddrx}} & {8{pinx_dm_loc[0]}}); 
+		      (ddrx_dout  &   {8{sel_ddrx}} & {8{ddrx_dm_loc[0]}}) |
+		      (resync_out &   {8{sel_pinx}} & {8{pinx_dm_loc[0]}}); 
 
 assign io_out_en   = iore & ((sel_portx & !portx_dm_loc[0]) |
-		             (sel_pinx  & !ddrx_dm_loc[0]) |
-		             (sel_ddrx  & !pinx_dm_loc[0])); 
+		             (sel_ddrx  & !ddrx_dm_loc[0]) |
+		             (sel_pinx  & !pinx_dm_loc[0])); 
 
 assign dm_out_en   = (dm_sel & ramre) & ((sel_portx & portx_dm_loc[0]) |
-		                         (sel_pinx  & ddrx_dm_loc[0]) |
-		                         (sel_ddrx  & pinx_dm_loc[0])); 
+		                         (sel_ddrx  & ddrx_dm_loc[0]) |
+		                         (sel_pinx  & pinx_dm_loc[0])); 
 
 
 assign sel_portx = (portx_dm_loc) ?  (ramadr[7:0] == portx_adr/*[7:0]*/) : (adr[5:0] == portx_adr[5:0]);
-assign sel_pinx  = (ddrx_dm_loc) ?   (ramadr[7:0] == ddrx_adr/*[7:0]*/)  : (adr[5:0] == ddrx_adr[5:0]); 
-assign sel_ddrx  = (pinx_dm_loc) ?   (ramadr[7:0] == pinx_adr/*[7:0]*/)  : (adr[5:0] == pinx_adr[5:0]); 
+assign sel_ddrx  = (ddrx_dm_loc) ?   (ramadr[7:0] == ddrx_adr/*[7:0]*/)  : (adr[5:0] == ddrx_adr[5:0]); 
+assign sel_pinx  = (pinx_dm_loc) ?   (ramadr[7:0] == pinx_adr/*[7:0]*/)  : (adr[5:0] == pinx_adr[5:0]); 
 
 assign we_portx = (portx_dm_loc) ?  (dm_sel & ramwe) : iowe;
 assign we_ddrx  = (ddrx_dm_loc) ?   (dm_sel & ramwe) : iowe; 
