@@ -1,0 +1,27 @@
+verilog_defaults -add -noautowire
+verilog_defaults -add -Iavr/avr_core_v14/rtl/common_packs
+read_verilog top.v
+read_verilog avr/avr.v
+read_verilog avr/peripherals.v
+read_verilog avr/snc_ram.v
+read_verilog avr/tri_buf.v
+hierarchy -top top \
+	-libdir avr/avr_core_v14/rtl/common \
+	-libdir avr/avr_core_v14/rtl/core \
+	-libdir avr/avr_core_v14/rtl/core/fast_adders \
+	-libdir avr/avr_core_v14/rtl/core/multiplier \
+	-libdir avr/avr_core_v14/rtl/avr_interconnect \
+	-libdir avr/avr_core_v14/rtl/pwr_on_rst_gen \
+	-libdir avr/avr_core_v14/rtl/ext_int_mod \
+	-libdir avr/avr_core_v14/rtl/pport \
+	-libdir avr/avr_core_v14/rtl/srctrl \
+	-libdir avr/avr_core_v14/rtl/smbus_mod \
+	-libdir avr/avr_core_v14/rtl/usart \
+	-libdir avr/avr_core_v14/rtl/spi_mod \
+	-libdir avr/avr_core_v14/rtl/wdt_mod \
+	-libdir avr/avr_core_v14/rtl/spm_mod \
+	-libdir avr/avr_core_v14/rtl/rsnc \
+	-libdir avr/avr_core_v14/rtl/rst_gen \
+	-libdir avr/avr_core_v14/rtl/TmrCnt \
+	-libdir avr/avr_core_v14/rtl/ram_data_rg
+synth_ice40 -blif avr.blif

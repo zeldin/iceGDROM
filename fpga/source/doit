@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+yosys -s top.yosys
+arachne-pnr -d 8k -p top.pcf -o avr.txt avr.blif
+icepack avr.txt avr.bin
