@@ -38,8 +38,12 @@ module top (
 	 .impl_avr109(1),
 	 .CLK_FREQUENCY(CPU_FREQ),
 	 .AVR109_BAUD_RATE(115200),
-	 .pm_init_low("pmem_low.hex"),
-	 .pm_init_high("pmem_high.hex"),
+`ifdef PM_INIT_LOW
+	 .pm_init_low(`PM_INIT_LOW),
+`endif
+`ifdef PM_INIT_HIGH
+	 .pm_init_high(`PM_INIT_HIGH),
+`endif
 	 )
      avr_inst(.nrst(1'b1), .clk(clkout),
 	      .porta({LED7, LED6, LED5, LED4, LED3, LED2, LED1, LED0}),

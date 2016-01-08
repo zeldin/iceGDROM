@@ -1,5 +1,5 @@
 
-SUBDIRS = fpga
+SUBDIRS = avr fpga
 
 .DEFAULT_GOAL:=dummy
 
