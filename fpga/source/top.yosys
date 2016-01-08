@@ -23,4 +23,4 @@ hierarchy -top top \
 	-libdir avr/avr_core_v14/rtl/rst_gen \
 	-libdir avr/avr_core_v14/rtl/TmrCnt \
 	-libdir avr/avr_core_v14/rtl/ram_data_rg
-synth_ice40 -blif avr.blif
+synth_ice40
