@@ -8,11 +8,11 @@
 	out	DDRA,r24
 	ldi	r24,0x1
 	ldi	r25,0x30
-	ldi	r23,_BV(TXC)
+	ldi	r23,_BV(TXC)|_BV(U2X)
 	out	UCSR0A,r23
-	ldi	r23,_BV(TXEN)|4
+	ldi	r23,_BV(TXEN)
 	out	UCSR0B,r23
-	ldi	r23,(_BV(UCSZ1)|_BV(UCSZ0))>>1
+	ldi	r23,_BV(UCSZ1)|_BV(UCSZ0)
 	out	UCSR0C,r23
 	ldi	r23,0x19
 	out	UBRR0L,r23

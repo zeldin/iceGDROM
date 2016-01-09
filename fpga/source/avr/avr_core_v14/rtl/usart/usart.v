@@ -305,6 +305,9 @@ wire ctsn_clk;
 
 wire tx_opt_parity_bit; // Data bit 10 for transmission (replaces parity bit)
 
+wire clk2x;
+wire mpcm;
+
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 // Alias replacement
@@ -312,14 +315,12 @@ wire tx_opt_parity_bit; // Data bit 10 for transmission (replaces parity bit)
 // CTRLB register
 wire rxen  = ctrlb_dout[4];
 wire txen  = ctrlb_dout[3];
-wire clk2x = ctrlb_dout[2];
-wire mpcm  = ctrlb_dout[1];
 wire txb8  = ctrlb_dout[0]; // TXB8 
 
 wire sbmode = ctrlc_dout[3]; // Two stop bits
 wire[1:0] pmode = ctrlc_dout[5:4]; 
 
-wire[2:0] chsize = ctrlc_dout[2:0]; // wire[3:0] chsize = ctrlc_dout[3:0]; => 26.08.12
+wire[2:0] chsize = {ctrlb_dout[2],ctrlc_dout[2:1]}; // wire[3:0] chsize = ctrlc_dout[3:0]; => 26.08.12
 
 // Loopback support
 wire loopback_en     = ctrlb_dout[5]; // !!!TBD!!!
@@ -463,20 +464,21 @@ assign ctrlb_dout[7:5] = {3{1'b0}};
 
 // CTRLB bits 5 and 6 are now implemented
        rg_md #(
-	       .p_width     (5+2),   
-               .p_init_val  ({(5+2){1'b0}}),
-	       .p_impl_mask ({(5+2){1'b1}}),
+	       .p_width     (5+1),
+               .p_init_val  ({(5+1){1'b0}}),
+	       .p_impl_mask ({(5+1){1'b1}}),
 	       .p_sync_rst  (0)   
 	       )
    rg_md_ctrlb_inst(
                .clk   (cp2),
                .nrst  (ireset),
-               .wdata (ctrlb_din[6:0]),  				     
+               .wdata ({ctrlb_din[6:2],ctrlb_din[0]}),
                .wbe   ({LP_WBE_WIDTH{ctrlb_we}}),
-               .rdata (ctrlb_dout[6:0])										     
+               .rdata ({ctrlb_dout[6:2],ctrlb_dout[0]})
 	       );
 
 assign ctrlb_dout[7] = 1'b0;
+assign ctrlb_dout[1] = rx_fifo_out[8];     // Receive Bit 8;
 
 
 
@@ -792,8 +794,8 @@ assign status_dout[5] = ~tx_fifo_full;      // TBD
 assign status_dout[4] = rx_fifo_out[10];    // Frame error
 assign status_dout[3] = rx_buf_ovf_current;
 assign status_dout[2] = rx_fifo_out[9];     // Parity
-assign status_dout[1] = 1'b0;               // Reserved
-assign status_dout[0] = rx_fifo_out[8];     // Receive Bit 8
+assign status_dout[1] = clk2x;
+assign status_dout[0] = mpcm;
 
 assign cpuwait        = 1'b0;
 
@@ -809,17 +811,17 @@ assign rtsn = rtsn_current;
 
 // Optional PERR for TX
        rg_md #(
-	       .p_width     (1),   
-               .p_init_val  ({1'b0}),
-	       .p_impl_mask ({1'b1}),
+	       .p_width     (1+1+1),
+               .p_init_val  ({(1+1+1){1'b0}}),
+	       .p_impl_mask ({(1+1+1){1'b1}}),
 	       .p_sync_rst  (0)   
 	       )
    rg_md_parity_repl_inst(
                .clk   (cp2),
                .nrst  (ireset),
-               .wdata (status_din[2]),  				     
+               .wdata (status_din[2:0]),
                .wbe   ({LP_WBE_WIDTH{status_we}}),
-               .rdata (tx_opt_parity_bit)										     
+               .rdata ({tx_opt_parity_bit,clk2x,mpcm})
 	       );
 
 
@@ -1185,8 +1187,8 @@ reg[1:8*80] tmp;
   if(status[4] === 1'b1) tmp = {tmp,"FERR "};
   if(status[3] === 1'b1) tmp = {tmp,"BUFOVF "};	    
   if(status[2] === 1'b1) tmp = {tmp,"PERR "}; 
-//  if(status[1] === 1'b1) tmp = {tmp," "}; 
-  if(status[0] === 1'b1) tmp = {tmp,"RXB8 "}; 
+  if(status[1] === 1'b1) tmp = {tmp,"CLK2X "};
+  if(status[0] === 1'b1) tmp = {tmp,"MPCM "};
   fn_dcd_vis_status = tmp;
  end
 endfunction // fn_dcd_vis_status
@@ -1202,8 +1204,8 @@ reg [1:8*80] tmp;
   if(ctrlb[5] === 1'b1) tmp = {tmp,"LBK "};  // Ext. 
   if(ctrlb[4] === 1'b1) tmp = {tmp,"RXEN "};
   if(ctrlb[3] === 1'b1) tmp = {tmp,"TXEN "};	    
-  if(ctrlb[2] === 1'b1) tmp = {tmp,"CLK2X "}; 
-  if(ctrlb[1] === 1'b1) tmp = {tmp,"MPCM "}; 
+  if(ctrlb[2] === 1'b1) tmp = {tmp,"UCSZ2"};
+  if(ctrlb[1] === 1'b1) tmp = {tmp,"RXB8 "};
   if(ctrlb[0] === 1'b1) tmp = {tmp,"TXB8 "}; 
   fn_dcd_vis_ctrlb = tmp;
  end
@@ -1220,9 +1222,9 @@ reg[1:8*80] tmp;
   if(ctrlc[5] === 1'b1) tmp = {tmp,"PMODE1 "};
   if(ctrlc[4] === 1'b1) tmp = {tmp,"PMODE0 "};
   if(ctrlc[3] === 1'b1) tmp = {tmp,"SBMODE "};	    
-  if(ctrlc[2] === 1'b1) tmp = {tmp,"CHSIZE2 "}; 
-  if(ctrlc[1] === 1'b1) tmp = {tmp,"CHSIZE1 "}; 
-  if(ctrlc[0] === 1'b1) tmp = {tmp,"CHSIZE0 "}; 
+  if(ctrlc[2] === 1'b1) tmp = {tmp,"CHSIZE1 "};
+  if(ctrlc[1] === 1'b1) tmp = {tmp,"CHSIZE0 "};
+  if(ctrlc[0] === 1'b1) tmp = {tmp,"UCPOL "};
   fn_dcd_vis_ctrlc = tmp;
  end
 endfunction // fn_dcd_vis_ctrlc
