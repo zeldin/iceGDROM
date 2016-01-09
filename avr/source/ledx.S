@@ -1,21 +1,23 @@
 
+#define __SFR_OFFSET 0
+#include "hardware.h"
+
 	.text
 
 	ldi	r24,0xf
-	out	0x1a,r24
+	out	DDRA,r24
 	ldi	r24,0x1
 	ldi	r25,0x30
-	ldi	r23,0x02
-	out	0xb,r23
-	ldi	r23,0x0c
-	out	0x6/*0xa*/,r23
-	ldi	r23,0x03
-	out	0x7,r23
+	ldi	r23,_BV(TXC)
+	out	UCSR0A,r23
+	ldi	r23,_BV(TXEN)|4
+	out	UCSR0B,r23
+	ldi	r23,(_BV(UCSZ1)|_BV(UCSZ0))>>1
+	out	UCSR0C,r23
 	ldi	r23,0x19
-	out	0x9,r23
+	out	UBRR0L,r23
 9:	
-	;; out	0x1b,r24
-	sts	0x3b,r24
+	out	PORTA,r24
 	
 	;; 11842740 cycles (0.99s)
 	ldi	r22,60
@@ -44,7 +46,7 @@
 	inc	r25
 	andi	r25,0xf
 	ori	r25,0x30
-	out	0xc,r25	
+	out	UDR0,r25
 	
 	rjmp	9b
 	nop

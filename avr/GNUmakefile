@@ -7,7 +7,7 @@ ASOURCES = ledx.S
 
 CC = avr-gcc
 OBJCOPY = avr-objcopy
-MCU = avr25
+MCU = atmega64
 
 LDFLAGS = -nostartfiles
 
@@ -20,7 +20,7 @@ AVRDUDE_PORT ?= /dev/ttyUSB1
 
 all : avr_main.hex pmem_high.hex pmem_low.hex
 
-flash :
+flash : pmem_high.hex pmem_low.hex
 
 upload : avr_main.hex
 	avrdude -c butterfly_mk -p ucr2 -b 115200 $(if $(AVRDUDE_PORT),-P,) $(AVRDUDE_PORT) -U flash:w:$<

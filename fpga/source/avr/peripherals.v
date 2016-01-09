@@ -84,9 +84,9 @@ module peripherals
 
 localparam LP_USART_SYNC_RST	     = 0;
 localparam LP_USART_RXB_TXB_ADR	     = 6'h0C; // UDR0_Address
-localparam LP_USART_STATUS_ADR	     = 6'h0A; // UCSR0B_Address
-localparam LP_USART_CTRLA_ADR	     = 6'h0B; // UCSR0A_Address
-localparam LP_USART_CTRLB_ADR	     = ADCSRA_Address; // TBD ???
+localparam LP_USART_STATUS_ADR	     = 6'h0B; // UCSR0A_Address
+localparam LP_USART_CTRLA_ADR	     = ADCSRA_Address; // TBD ???
+localparam LP_USART_CTRLB_ADR	     = 6'h0A; // UCSR0B_Address
 localparam LP_USART_CTRLC_ADR	     = ADMUX_Address;  // TBD ???
 localparam LP_USART_BAUDCTRLA_ADR    = 6'h09; // UBRR0L_Address
 localparam LP_USART_BAUDCTRLB_ADR    = ACSR_Address;   // TBD ???
