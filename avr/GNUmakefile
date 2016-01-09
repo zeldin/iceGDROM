@@ -2,14 +2,15 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-SOURCES = 
-ASOURCES = ledx.S
+SOURCES = main.c
+ASOURCES = delay.S
 
 CC = avr-gcc
 OBJCOPY = avr-objcopy
 MCU = atmega64
 
-LDFLAGS = -nostartfiles
+CFLAGS = -Os -fomit-frame-pointer
+LDFLAGS = -Wl,--defsym,__stack=0x3ff -mrelax
 
 ALL_CFLAGS = -mmcu=$(MCU) -I. -I$(SRC) $(CFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -I$(SRC) -x assembler-with-cpp $(ASFLAGS)
