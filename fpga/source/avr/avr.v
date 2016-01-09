@@ -7,6 +7,9 @@ module avr (
 	    // PORTA
 	    inout[7:0]                    porta,
 			 
+	    // PORTB
+	    inout[7:0]                    portb,
+
 	    // UART related
 	    input                         rxd,
 	    output wire                   txd,  
@@ -64,6 +67,11 @@ localparam rst_act_high = 0;
  wire[7:0]               porta_ddrx;
  wire[7:0]               porta_pinx;
 
+   // PortB interface
+ wire[7:0]               portb_portx;
+ wire[7:0]               portb_ddrx;
+ wire[7:0]               portb_pinx;
+
 wire		 	 spe;
 wire                     spimaster;
 wire                     sdaen;
@@ -77,7 +85,11 @@ wire                  sclen;
    wire               misoo;
    wire               mosio;
    wire               scko;
-   
+   wire               misoi;
+   wire               mosii;
+   wire               scki;
+   wire 	      spi_slave_cs_n;
+   assign spi_slave_cs_n = 1'b1;
    
     // PM interface
  wire[15:0]              pm_adr;
@@ -347,6 +359,11 @@ peripherals #(.irqs_width(irqs_width))
 		     .porta_ddrx(porta_ddrx),
 		     .porta_pinx(porta_pinx),
 
+		     // PORTB related
+		     .portb_portx(portb_portx),
+		     .portb_ddrx(portb_ddrx),
+		     .portb_pinx(portb_pinx),
+
 		     // Timer related
 		     .tmr_ext_1(1'b0),
 		     .tmr_ext_2(1'b0),
@@ -358,10 +375,10 @@ peripherals #(.irqs_width(irqs_width))
 		     .txd(txd_core),
 
 		     // SPI related
-		     .misoi(miso),
-		     .mosii(mosi),
-		     .scki(sck),
-		     .ss_b(1'b1),
+		     .misoi(misoi),
+		     .mosii(mosii),
+		     .scki(scki),
+		     .ss_b(spi_slave_cs_n),
 
 		     .misoo(misoo),
 		     .mosio(mosio),
@@ -439,6 +456,34 @@ tri_buf tri_buf_porta_inst[7:0](
 	       .in  (porta_pinx),
 	       .en  (porta_ddrx) ,
 	       .pin (porta)
+	       );
+
+tri_buf tri_buf_portb_inst[7:0](
+	       .out (portb_portx),
+	       .in  (portb_pinx),
+	       .en  (portb_ddrx) ,
+	       .pin (portb)
+	       );
+
+tri_buf tri_buf_miso(
+	       .out (misoo),
+	       .in  (misoi),
+	       .en  (spe & (~spimaster) & ~(spi_slave_cs_n)) ,
+	       .pin (miso)
+	       );
+
+tri_buf tri_buf_mosi(
+	       .out (mosio),
+	       .in  (mosii),
+	       .en  (spe & spimaster) ,
+	       .pin (mosi)
+	       );
+
+tri_buf tri_buf_sck(
+	       .out (scko),
+	       .in  (scki),
+	       .en  (spe & spimaster) ,
+	       .pin (sck)
 	       );
 
 por_rst_gen #(.tech(c_tech_generic)) por_rst_gen_inst(

@@ -31,6 +31,11 @@ module peripherals
 	                 output[7:0]                    porta_ddrx,
 	                 input[7:0]                     porta_pinx,
 
+			 // PORTB related
+			 output[7:0]                    portb_portx,
+	                 output[7:0]                    portb_ddrx,
+	                 input[7:0]                     portb_pinx,
+
 			 // Timer related
 			 input                          tmr_ext_1,
 			 input                          tmr_ext_2,
@@ -119,6 +124,10 @@ wire     tmr_io_slv_out_en;
 // PORTA slave output
 wire[7:0] pport_a_io_slv_dbusout;
 wire      pport_a_io_slv_out_en;
+
+// PORTB slave output
+wire[7:0] pport_b_io_slv_dbusout;
+wire      pport_b_io_slv_out_en;
 
 // SPI slave output
 wire[7:0] spi_io_slv_dbusout;
@@ -270,13 +279,55 @@ Timer_Counter Timer_Counter_inst(
 	       .resync_out  (/*Not used*/)
 	        );
 
+//################################################ PORTB #################################################
+
+         pport#(
+	       .portx_adr    (PORTB_Address),
+	       .ddrx_adr     (DDRB_Address),
+	       .pinx_adr     (PINB_Address),
+	       .portx_dm_loc (0),
+	       .ddrx_dm_loc  (0),
+	       .pinx_dm_loc  (0),
+	       .port_width   (8),
+	       .port_rs_type (0 /*c_pport_rs_md_fre*/),
+	       .port_mode    (0 /*c_pport_mode_bidir*/)
+	       )
+   pport_b_inst(
+	           // Clock and Reset
+               .ireset      (ireset),
+               .cp2	    (cp2),
+	        // I/O
+               .adr	    (adr),
+               .dbus_in     (dbus_in),
+               .dbus_out    (pport_b_io_slv_dbusout),
+               .iore	    (iore),
+               .iowe	    (iowe),
+               .io_out_en   (pport_b_io_slv_out_en),
+	        // DM
+	       .ramadr      ({8{1'b0}} ),
+	       .dm_dbus_in  ({8{1'b0}}),
+               .dm_dbus_out (/*Not used*/),
+               .ramre	    (gnd),
+               .ramwe	    (gnd),
+	       .dm_sel      (gnd),
+	       .cpuwait     (/*Not used*/),
+	       .dm_out_en   (/*Not used*/),
+		// External connection
+	       .portx	    (portb_portx),
+	       .ddrx	    (portb_ddrx),
+	       .pinx	    (portb_pinx),
+		//
+	       .resync_out  (/*Not used*/)
+	        );
+
 
 // I/O slaves outputs
-   wire [7*(8+1)-1:0] io_slv_outs;
+   wire [8*(8+1)-1:0] io_slv_outs;
    assign io_slv_outs = {
                       wdt_io_slv_out_en,wdt_io_slv_dbusout[7:0],
                       tmr_io_slv_out_en,tmr_io_slv_dbusout[7:0],
 		      pport_a_io_slv_out_en,pport_a_io_slv_dbusout[7:0],
+		      pport_b_io_slv_out_en,pport_b_io_slv_dbusout[7:0],
 		      spi_io_slv_out_en,spi_io_slv_dbusout[7:0],
 		      uart_io_slv_out_en,uart_io_slv_dbusout[7:0],
 		      smb_io_slv_out_en,smb_io_slv_dbusout[7:0],
@@ -285,7 +336,7 @@ Timer_Counter Timer_Counter_inst(
 
 genvar i;
 generate
-   for(i=0; i<7; i=i+1) begin : peripheral_out
+   for(i=0; i<8; i=i+1) begin : peripheral_out
       wire out_en, prev_en;
       wire [7:0] dbusout, prevout;
       if (i==0) begin
@@ -300,8 +351,8 @@ generate
    end
 endgenerate
 
-   assign out_en = peripheral_out[6].out_en;
-   assign dbus_out = peripheral_out[6].dbusout;
+   assign out_en = peripheral_out[7].out_en;
+   assign dbus_out = peripheral_out[7].dbusout;
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -365,6 +416,12 @@ else begin : spi_is_not_implemented
 assign spi_io_slv_dbusout = {8{1'b0}};
 assign spi_io_slv_out_en  = gnd;
 assign spi_slv_sel_n      = {c_spi_slvs_num{1'b1}};
+
+assign misoo = 1'b0;
+assign mosio = 1'b0;
+assign scko = 1'b0;
+assign spe = 1'b0;
+assign spimaster = 1'b0;
 
 end // spi_is_not_implemented
 

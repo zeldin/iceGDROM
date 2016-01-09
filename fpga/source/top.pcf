@@ -9,3 +9,15 @@ set_io LED7 C3
 set_io RXD B10
 set_io TXD B12
 set_io clk J3
+set_io MOSI P1
+set_io MISO P2
+set_io SCK R1
+set_io SPI_CS0 N2
+set_io PORTB0 M1
+set_io PORTB1 M2
+set_io PORTB2 L1
+set_io PORTB3 L3
+set_io PORTB4 K1
+set_io PORTB5 K3
+set_io PORTB6 J1
+set_io PORTB7 J2
