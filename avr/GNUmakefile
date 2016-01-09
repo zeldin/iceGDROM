@@ -16,9 +16,14 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -I$(SRC) -x assembler-with-cpp $(ASFLAGS)
 
 OBJ = $(SOURCES:%.c=%.o) $(ASOURCES:%.S=%.o) 
 
+AVRDUDE_PORT ?= /dev/ttyUSB1
+
 all : avr_main.hex pmem_high.hex pmem_low.hex
 
 flash :
+
+upload : avr_main.hex
+	avrdude -c butterfly_mk -p ucr2 -b 115200 $(if $(AVRDUDE_PORT),-P,) $(AVRDUDE_PORT) -U flash:w:$<
 
 .SECONDARY:
 

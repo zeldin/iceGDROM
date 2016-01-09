@@ -26,6 +26,9 @@ all : gdrom_hw_emulator.bin
 flash : gdrom_hw_emulator.bin
 	iceprog $(if $(ICEPROG_DEVICE),-d,) $(ICEPROG_DEVICE) $(if $(ICEPROG_INTERFACE),-I,) $(ICEPROG_INTERFACE) $<
 
+upload :
+
+
 .SECONDARY:
 
 %.bin : %.txt
