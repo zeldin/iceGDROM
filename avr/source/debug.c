@@ -24,6 +24,20 @@ void debug_putc(char c)
   UDR0 = c;
 }
 
+static void debug_putx1(uint8_t x)
+{
+  if((x &= 0xf) < 10)
+    debug_putc('0'+x);
+  else
+    debug_putc(('A'-10)+x);
+}
+
+void debug_putx(uint8_t x)
+{
+  debug_putx1(x>>4);
+  debug_putx1(x);
+}
+
 void debug_puts_P(const char *str)
 {
   char c;
