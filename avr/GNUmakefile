@@ -44,10 +44,12 @@ pmem_low.hex : avr_main.bin
 	$(OBJCOPY) -O binary -R .eeprom -R .fuse -R .lock $< $@
 
 %.o : $(SRC)/%.c
-	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
+	$(CC) -MMD -c $(ALL_CFLAGS) $< -o $@
 
 %.o : $(SRC)/%.S
-	$(CC) -c $(ALL_ASFLAGS) $< -o $@
+	$(CC) -MMD -c $(ALL_ASFLAGS) $< -o $@
+
+-include $(OBJ:%.o=%.d)
 
 else
 
