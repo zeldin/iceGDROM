@@ -7,3 +7,9 @@
 #undef UBRR0H
 #define UBRR0H _SFR_IO8(0x08)
 
+#define SD_CD_PIN PINB
+#define SD_CD_BIT PIN0
+
+#define SPI_CS _SFR_IO8(0x00)
+
+#define SPI_CS_SD 0
