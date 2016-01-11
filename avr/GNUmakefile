@@ -32,10 +32,10 @@ avr_main.elf: $(OBJ)
 	$(CC) $(ALL_CFLAGS) $^ -o $@ $(LDFLAGS)
 
 pmem_high.hex : avr_main.bin
-	od -An -tx2 --endian=little < $^ | sed -e 's/\([0-9a-fA-F]\{2\}\)[0-9a-fA-F]\{2\}/\1/g' > $@
+	od -v -An -tx2 --endian=little < $^ | sed -e 's/\([0-9a-fA-F]\{2\}\)[0-9a-fA-F]\{2\}/\1/g' > $@
 
 pmem_low.hex : avr_main.bin
-	od -An -tx2 --endian=little < $^ | sed -e 's/[0-9a-fA-F]\{2\}\([0-9a-fA-F]\{2\}\)/\1/g' > $@
+	od -v -An -tx2 --endian=little < $^ | sed -e 's/[0-9a-fA-F]\{2\}\([0-9a-fA-F]\{2\}\)/\1/g' > $@
 
 %.hex: %.elf
 	$(OBJCOPY) -O ihex -R .eeprom -R .fuse -R .lock $< $@
