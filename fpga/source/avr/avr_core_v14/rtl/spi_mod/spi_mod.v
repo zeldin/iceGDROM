@@ -322,7 +322,7 @@ reg SPI2X_Current;
          if (SPI2X_Current == 1'b1)		// Extended mode
             case (`SPR)
                2'b00 :		// fosc /2
-                  if (Div_Current == 6'b000001)
+                  if (Div_Current == 6'b000000)
                      Div_Toggle = 1'b1;
                2'b01 :		// fosc /8
                   if (Div_Current == 6'b000011)
