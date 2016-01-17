@@ -22,12 +22,14 @@ module top (
 	    inout PORTB5,
 	    inout PORTB6,
 	    inout PORTB7,
+	    output CDCLK,
 	    );
 
-   localparam REFCLK_FREQ = 12000000;
-   localparam CPU_FREQ = 24000000;
+   localparam REFCLK_FREQ = 11289600;
+   localparam CDCLK_FREQ = 33868800;
+   localparam CPU_FREQ = 22579200;
 
-   wire clkout, lock;
+   wire clkout, lock, lock_cdclk;
 
    generate
       if(REFCLK_FREQ != CPU_FREQ) begin : use_clkgen
@@ -44,6 +46,10 @@ module top (
 
       end
    endgenerate
+
+   clkgen #(.INCLOCK_FREQ(REFCLK_FREQ),
+	    .OUTCLOCK_FREQ(CDCLK_FREQ))
+   clkgen_cdclk_inst(.clkin(clk), .clkout(CDCLK), .lock(lock_cdclk));
 
    avr #(.pm_size(1),
 	 .dm_size(1),

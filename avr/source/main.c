@@ -6,7 +6,8 @@
 
 void sd_spi_enable()
 {
-  SPCR = _BV(SPE)|_BV(MSTR)|_BV(SPR1); /* 24MHz/64 = 375kHz */
+  SPCR = _BV(SPE)|_BV(MSTR);
+  SPSR |= _BV(SPI2X); /* 22.6MHz/2 = 11.3MHz */
 }
 
 void sd_spi_disable()
