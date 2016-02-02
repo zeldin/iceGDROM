@@ -11,6 +11,8 @@
 #define SPI_MOSI  PB2
 #define SPI_SCK   PB1
 
+static bool is_hc;
+
 static __inline void sd_spi_enable_init()
 {
   PORTB = _BV(SPI_CS);
@@ -119,13 +121,20 @@ static uint8_t sd_send_cmd(uint8_t cmd)
 
 bool sd_init()
 {
-  uint8_t i;
+  uint8_t i, r1;
+  bool is_sd2 = false;
+
+  is_hc = false;
+
   sd_spi_enable_init();
   for (i=0; i<10; i++)
     spi_send_byte(0xff);
 
-  uint8_t r1 = sd_send_cmd(0);
-
+  for (i=0; i<255; i++) {
+    r1 = sd_send_cmd(0);
+    if (r1 == 1)
+      break;
+  }
   DEBUG_PUTS("CMD0 sent, R1=0x");
   DEBUG_PUTX(r1);
   DEBUG_PUTC('\n');
@@ -147,9 +156,42 @@ bool sd_init()
     if (r1 != 0xaa)
       goto fail;
 
+    is_sd2 = true;
     DEBUG_PUTS("Card is SD2\n");
   } else
     DEBUG_PUTS("Card is SD1\n");
+
+  uint16_t j;
+  for (j=0; j<5000; j++) {
+    sd_send_cmd(55);
+    r1 = sd_send_cmd_param32(41, (is_sd2? 0x40000000 : 0));
+    if (r1 == 0)
+      break;
+  }
+  DEBUG_PUTS("ACMD41 sent, R1=0x");
+  DEBUG_PUTX(r1);
+  DEBUG_PUTC('\n');
+  if (r1 != 0)
+    goto fail;
+
+  if (is_sd2) {
+    r1 = sd_send_cmd(58);
+    DEBUG_PUTS("CMD58 sent, R1=0x");
+    DEBUG_PUTX(r1);
+    DEBUG_PUTC('\n');
+    if (r1 != 0)
+      goto fail;
+    r1 = spi_recv_byte();
+    DEBUG_PUTS(" OCR=0x");
+    DEBUG_PUTX(r1);
+    DEBUG_PUTS("...\n");
+    if ((r1 & 0xc0) == 0xc0)
+	is_hc = true;
+    for (i=0; i<3; i++)
+      spi_recv_byte();
+    if (is_hc)
+      DEBUG_PUTS("Card is SDHC\n");
+  }
 
   PORTB |= _BV(SPI_CS);
   sd_spi_disable();
