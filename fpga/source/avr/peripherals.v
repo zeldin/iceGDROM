@@ -57,7 +57,6 @@ module peripherals
 			output wire                     scko,
 			output wire                     spe,
 			output wire                     spimaster,
-                        output wire                     spi_cs_n,
 
                          //I2C related
 			 // TRI control and data for the slave channel
@@ -132,9 +131,6 @@ wire      pport_b_io_slv_out_en;
 // SPI slave output
 wire[7:0] spi_io_slv_dbusout;
 wire      spi_io_slv_out_en;
-
-localparam c_spi_slvs_num = 8;
-wire[7:0] spi_slv_sel_n;
 
 // UART
 wire[7:0] uart_io_slv_dbusout;
@@ -393,29 +389,11 @@ spi_mod spi_mod_inst(
 		    .spiload     (/*Not used*/)
                     );
 
-
-// SPI slave select module
-spi_slv_sel #(.num_of_slvs (c_spi_slvs_num))
-	spi_slv_sel_inst(
-	                // AVR Control
-                    .ireset     (ireset),
-                    .cp2	(cp2),
-                    .adr        (adr),
-                    .dbus_in    (dbus_in),
-                    .dbus_out   (/*Not used*/),
-                    .iore       (iore),
-                    .iowe       (iowe),
-                    .out_en     (/*Not used*/),
-		     // Output
-                    .slv_sel_n  (spi_slv_sel_n)
-                    );
-
 end // spi_is_implemented
 else begin : spi_is_not_implemented
 
 assign spi_io_slv_dbusout = {8{1'b0}};
 assign spi_io_slv_out_en  = gnd;
-assign spi_slv_sel_n      = {c_spi_slvs_num{1'b1}};
 
 assign misoo = 1'b0;
 assign mosio = 1'b0;
@@ -426,8 +404,6 @@ assign spimaster = 1'b0;
 end // spi_is_not_implemented
 
 endgenerate
-
-assign spi_cs_n = spi_slv_sel_n[0];
 
 
 // UART/USART

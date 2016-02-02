@@ -14,12 +14,6 @@ module avr (
 	    input                         rxd,
 	    output wire                   txd,  
 			  
-	    // SPI related
-	    inout                         mosi,
-	    inout                         miso,
-	    inout                         sck, 
-	    output wire                   spi_cs_n,
-			 
 	    //I2C related
 	    inout                          m_scl,
 	    inout                          m_sda,
@@ -89,7 +83,6 @@ wire                  sclen;
    wire               mosii;
    wire               scki;
    wire 	      spi_slave_cs_n;
-   assign spi_slave_cs_n = 1'b1;
    
     // PM interface
  wire[15:0]              pm_adr;
@@ -385,7 +378,6 @@ peripherals #(.irqs_width(irqs_width))
 		     .scko(scko),
 		     .spe(spe),
 		     .spimaster(spimaster),
-		     .spi_cs_n(spi_cs_n),
 
                      //I2C related
 		     // TRI control and data for the slave channel
@@ -459,32 +451,21 @@ tri_buf tri_buf_porta_inst[7:0](
 	       );
 
 tri_buf tri_buf_portb_inst[7:0](
-	       .out (portb_portx),
+	       .out ({portb_portx[7:4],
+		      ((spe & (~spimaster))? misoo : portb_portx[3]),
+		      ((spe & spimaster)? {mosio, scko} : portb_portx[2:1]),
+		      portb_portx[0]}),
 	       .in  (portb_pinx),
-	       .en  (portb_ddrx) ,
+	       .en  ({portb_ddrx[7:4],
+		      ((spe & spimaster)? 1'b0 : portb_ddrx[3]),
+		      ((spe & (~spimaster))? 3'b000 : portb_ddrx[2:0])}),
 	       .pin (portb)
 	       );
 
-tri_buf tri_buf_miso(
-	       .out (misoo),
-	       .in  (misoi),
-	       .en  (spe & (~spimaster) & ~(spi_slave_cs_n)) ,
-	       .pin (miso)
-	       );
-
-tri_buf tri_buf_mosi(
-	       .out (mosio),
-	       .in  (mosii),
-	       .en  (spe & spimaster) ,
-	       .pin (mosi)
-	       );
-
-tri_buf tri_buf_sck(
-	       .out (scko),
-	       .in  (scki),
-	       .en  (spe & spimaster) ,
-	       .pin (sck)
-	       );
+assign spi_slave_cs_n = portb_pinx[0];
+assign scki = portb_pinx[1];
+assign mosii = portb_pinx[2];
+assign misoi = portb_pinx[3];
 
 por_rst_gen #(.tech(c_tech_generic)) por_rst_gen_inst(
    .clk       (clk),

@@ -4,6 +4,8 @@
 #include "debug.h"
 #include "delay.h"
 
+#define SPI_CS    PB5
+
 void sd_spi_enable()
 {
   SPCR = _BV(SPE)|_BV(MSTR);
@@ -37,7 +39,7 @@ void sd_send_cmd0()
 
   sd_spi_enable();
 
-  SPI_CS |= _BV(SPI_CS_SD);
+  PORTB &= ~_BV(SPI_CS);
 
   spi_send_byte(0x40);
   spi_send_byte(0x00);
@@ -53,7 +55,7 @@ void sd_send_cmd0()
     r1 = SPDR;
   }
 
-  SPI_CS &= ~_BV(SPI_CS_SD);
+  PORTB |= _BV(SPI_CS);
 
   sd_spi_disable();
 

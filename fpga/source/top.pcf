@@ -8,19 +8,15 @@ set_io LED6 B3
 set_io LED7 C3
 set_io RXD B10
 set_io TXD B12
-# For use with breakout board, connect 11.2896MHz oscillator to N3
+# For use with breakout board, connect 11.2896MHz oscillator to L3
 # set_io clk J3
-set_io clk N3
-set_io MOSI P1
-set_io MISO P2
-set_io SCK R1
-set_io SPI_CS0 N2
-set_io PORTB0 M1
-set_io PORTB1 M2
-set_io PORTB2 L1
-set_io PORTB3 L3
-set_io PORTB4 K1
-set_io PORTB5 K3
-set_io PORTB6 J1
-set_io PORTB7 J2
+set_io clk L3
+set_io PORTB0 R2
+set_io PORTB1 R1
+set_io PORTB2 P1
+set_io PORTB3 P2
+set_io PORTB4 N3
+set_io PORTB5 N2
+set_io PORTB6 M2
+set_io PORTB7 M1
 set_io CDCLK  R16
