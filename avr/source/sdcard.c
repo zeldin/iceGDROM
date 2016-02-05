@@ -4,12 +4,15 @@
 #include "hardware.h"
 #include "debug.h"
 #include "delay.h"
+#include "timer.h"
 #include "sdcard.h"
 
 #define SPI_CS    PB5
 #define SPI_MISO  PB3
 #define SPI_MOSI  PB2
 #define SPI_SCK   PB1
+
+#define INIT_TIMEOUT_CS 200
 
 static bool is_hc;
 
@@ -123,6 +126,7 @@ bool sd_init()
 {
   uint8_t i, r1;
   bool is_sd2 = false;
+  uint8_t start = centis;
 
   is_hc = false;
 
@@ -130,11 +134,11 @@ bool sd_init()
   for (i=0; i<10; i++)
     spi_send_byte(0xff);
 
-  for (i=0; i<255; i++) {
+  do {
     r1 = sd_send_cmd(0);
     if (r1 == 1)
       break;
-  }
+  } while (((uint8_t)(centis - start)) < INIT_TIMEOUT_CS);
   DEBUG_PUTS("CMD0 sent, R1=0x");
   DEBUG_PUTX(r1);
   DEBUG_PUTC('\n');
@@ -162,12 +166,12 @@ bool sd_init()
     DEBUG_PUTS("Card is SD1\n");
 
   uint16_t j;
-  for (j=0; j<5000; j++) {
+  do {
     sd_send_cmd(55);
     r1 = sd_send_cmd_param32(41, (is_sd2? 0x40000000 : 0));
     if (r1 == 0)
       break;
-  }
+  } while (((uint8_t)(centis - start)) < INIT_TIMEOUT_CS);
   DEBUG_PUTS("ACMD41 sent, R1=0x");
   DEBUG_PUTX(r1);
   DEBUG_PUTC('\n');
