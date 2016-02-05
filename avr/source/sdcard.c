@@ -27,8 +27,9 @@ static __inline void sd_spi_enable_init()
 
 static __inline void sd_spi_enable()
 {
-  SPSR |= _BV(SPI2X); /* 22.6MHz/2 = 11.3MHz */
-  SPCR = _BV(SPE)|_BV(MSTR);
+  SPSR &= ~_BV(SPI2X);
+  /* SPSR |= _BV(SPI2X); */
+  SPCR = _BV(SPE)|_BV(MSTR); /* 22.6MHz/4 = 5.65MHz */
   PORTB |= _BV(SPI_MOSI);
 }
 
@@ -83,7 +84,7 @@ static uint8_t sd_send_cmd_param32(uint8_t cmd, uint32_t param)
     spi_send_byte(0xff);
 
   SPCR &= ~_BV(SPE);
-  if (SPSR & _BV(SPI2X)) {
+  if (!(SPCR & _BV(SPR1))) {
     /* Fast path */
     for (cnt=0; (PINB & _BV(SPI_MISO)) && cnt<32; cnt++) {
       PORTB |= _BV(SPI_SCK);
