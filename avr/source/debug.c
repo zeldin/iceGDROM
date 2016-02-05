@@ -8,7 +8,7 @@
 
 #ifndef NDEBUG
 
-int debug_init()
+void debug_init()
 {
   UCSR0A = _BV(TXC)|_BV(U2X);
   UCSR0B = _BV(TXEN);
