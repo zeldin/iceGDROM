@@ -1,10 +1,12 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <avr/interrupt.h>
 
 #include "hardware.h"
 #include "debug.h"
 #include "delay.h"
 #include "sdcard.h"
+#include "timer.h"
 
 void handle_sdcard()
 {
@@ -21,6 +23,8 @@ int main()
   DDRA = 0xff;
   DDRB = 0x00;
   DEBUG_INIT();
+  timer_init();
+  sei();
 
   uint8_t leds = 1;
 
