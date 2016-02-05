@@ -13,6 +13,7 @@
 #define SPI_SCK   PB1
 
 #define INIT_TIMEOUT_CS 200
+#define READ_TIMEOUT_CS 30
 
 static bool is_hc;
 
@@ -210,3 +211,36 @@ bool sd_init()
   return false;
 }
 
+bool sd_read_block(uint32_t blk, uint8_t *ptr)
+{
+  if (!is_hc)
+    blk <<= 9;
+  sd_spi_enable();
+  if (sd_send_cmd_param32(17, blk)) {
+    goto fail;
+  }
+  uint8_t r, start = centis;
+  do {
+    if ((r = spi_recv_byte()) != 0xff)
+      break;
+  } while (((uint8_t)(centis - start)) < READ_TIMEOUT_CS);
+  if (r != 0xfe) {
+    goto fail;
+  }
+  uint16_t cnt = 512;
+  do {
+    *ptr++ = spi_recv_byte();
+  } while(--cnt);
+  /* Discard CRC */
+  spi_recv_byte();
+  spi_recv_byte();
+  PORTB |= _BV(SPI_CS);
+  sd_spi_disable();
+  return true;
+
+ fail:
+  PORTB |= _BV(SPI_CS);
+  sd_spi_disable();
+  DEBUG_PUTS("Block read failed\n");
+  return false;
+}
