@@ -137,8 +137,6 @@ rst_gen #(.rst_high(rst_act_high))
 
    
 wire core_valid_instr;
-wire core_insert_nop;
-wire core_block_irq;
 wire core_change_flow;
 
 wire[15:0] core_pc;
@@ -278,8 +276,8 @@ avr_core_inst(
 		.ireset      (core_ireset),
 
 		.valid_instr (core_valid_instr),
-		.insert_nop  (core_insert_nop ),
-		.block_irq   (core_block_irq  ),
+		.insert_nop  (1'b0),
+		.block_irq   (1'b0),
 		.change_flow (core_change_flow),
 
 		.pc          (core_pc      ),
