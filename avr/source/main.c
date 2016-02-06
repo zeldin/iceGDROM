@@ -15,7 +15,8 @@ void handle_sdcard()
   DEBUG_PUTS("[Card inserted]\n");
 
   if (sd_init())
-    fatfs_mount();
+    if (fatfs_mount())
+      fatfs_read_rootdir();
 
   loop_until_bit_is_clear(SD_CD_PIN, SD_CD_BIT);
   DEBUG_PUTS("[Card extracted]\n");

@@ -150,3 +150,48 @@ bool fatfs_mount()
     return false;
   return check_root_block(part_start);
 }
+
+bool fatfs_read_rootdir()
+{
+  uint32_t blk = root_dir_start;
+  uint16_t rde = root_dir_entries;
+  uint8_t entry = 0, cnr = 0;
+  const uint8_t *p;
+  for (;;) {
+    if (!fat32 && !rde)
+      break;
+    if (!entry) {
+      p = data_block;
+      if (fat32) {
+	if (!read_cluster_block(blk, cnr++))
+	  return false;
+      } else {
+	if (!read_block(blk++, 0))
+	  return false;
+      }
+    }
+    if (!*p)
+      break;
+    if (*p != 0xe5 && (p[11]&0x3f) != 0x0f) {
+      DEBUG_PUTS("Entry ");
+      int i;
+      for(i=0; i<11; i++)
+	DEBUG_PUTC(p[i]);
+      DEBUG_PUTC('\n');
+    }
+    p += 32;
+    --rde;
+    if (++entry == 16) {
+      entry = 0;
+      if (fat32) {
+	if (cnr == blocks_per_cluster) {
+	  cnr = 0;
+	  blk = get_fat_entry(blk);
+	  if (blk & FAT_EOC)
+	    break;
+	}
+      }
+    }
+  }
+  return false;
+}
