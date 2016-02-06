@@ -47,8 +47,8 @@ module top (
 	    .OUTCLOCK_FREQ(CDCLK_FREQ))
    clkgen_cdclk_inst(.clkin(clk), .clkout(CDCLK), .lock(lock_cdclk));
 
-   avr #(.pm_size(1),
-	 .dm_size(1),
+   avr #(.pm_size(2),
+	 .dm_size(2),
 	 .impl_avr109(1),
 	 .CLK_FREQUENCY(CPU_FREQ),
 	 .AVR109_BAUD_RATE(115200),
