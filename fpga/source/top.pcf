@@ -11,7 +11,7 @@ set_io TXD B12
 # For use with breakout board, connect 11.2896MHz oscillator to L3
 # set_io clk J3
 set_io clk L3
-set_io PORTB0 R2
+set_io PORTB0 B2
 set_io PORTB1 R1
 set_io PORTB2 P1
 set_io PORTB3 P2
@@ -19,4 +19,33 @@ set_io PORTB4 N3
 set_io PORTB5 N2
 set_io PORTB6 M2
 set_io PORTB7 M1
-set_io CDCLK  R16
+set_io CDCLK  B1
+
+set_io G_RST  T1
+set_io D8     R2
+set_io D7     T2
+set_io D9     R3
+set_io D6     T3
+set_io D10    T5
+set_io D5     R4
+set_io D11    T6
+set_io D4     R5
+set_io D12    T7
+set_io D3     R6
+set_io D13    T9
+set_io D2     T8
+set_io D14    P8
+set_io D1     P9
+set_io D15    T10
+set_io D0     R10
+set_io DMARQ  T11
+set_io WRn    P10
+set_io RDn    N10
+set_io IORDY  M11
+set_io DMACKn N12
+set_io INTRQ  P13
+set_io CS0n   T13
+set_io CS1n   T14
+set_io A0     T15
+set_io A2     T16
+set_io A1     R16

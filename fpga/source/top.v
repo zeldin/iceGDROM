@@ -18,7 +18,37 @@ module top (
 	    inout PORTB5,
 	    inout PORTB6,
 	    inout PORTB7,
+
 	    output CDCLK,
+
+	    input G_RST,
+	    inout D0,
+	    inout D1,
+	    inout D2,
+	    inout D3,
+	    inout D4,
+	    inout D5,
+	    inout D6,
+	    inout D7,
+	    inout D8,
+	    inout D9,
+	    inout D10,
+	    inout D11,
+	    inout D12,
+	    inout D13,
+	    inout D14,
+	    inout D15,
+	    inout DMARQ,
+	    input WRn,
+	    input RDn,
+	    inout IORDY,
+	    input DMACKn,
+	    inout INTRQ,
+	    input CS0n,
+	    input CS1n,
+	    input A0,
+	    input A1,
+	    input A2
 	    );
 
    localparam REFCLK_FREQ = 11289600;
@@ -26,6 +56,9 @@ module top (
    localparam CPU_FREQ = 22579200;
 
    wire clkout, lock, lock_cdclk;
+   wire [15:0] sram_a;
+   wire [7:0]  d_to_ide, d_from_ide;
+   wire sram_cs, sram_oe, sram_we, sram_wait;
 
    generate
       if(REFCLK_FREQ != CPU_FREQ) begin : use_clkgen
@@ -47,6 +80,16 @@ module top (
 	    .OUTCLOCK_FREQ(CDCLK_FREQ))
    clkgen_cdclk_inst(.clkin(clk), .clkout(CDCLK), .lock(lock_cdclk));
 
+   ide_interface #(.drv(1'b0))
+     ide_inst(.dd({D15,D14,D13,D12,D11,D10,D9,D8,D7,D6,D5,D4,D3,D2,D1,D0}),
+	      .da({A2,A1,A0}), .cs1fx_(CS0n), .cs3fx_(CS1n), .dasp_(),
+	      .dior_(RDn), .diow_(WRn), .dmack_(DMACKn), .dmarq(DMARQ),
+	      .intrq(INTRQ), .iocs16_(), .iordy(IORDY), .pdiag_(),
+	      .reset_(G_RST), .csel(1'b0), .clk(clkout),
+	      .sram_a(sram_a), .sram_d_in(d_to_ide), .sram_d_out(d_from_ide),
+	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
+	      .sram_wait(sram_wait));
+
    avr #(.pm_size(2),
 	 .dm_size(2),
 	 .impl_avr109(1),
@@ -64,7 +107,8 @@ module top (
 	      .portb({PORTB7, PORTB6, PORTB5, PORTB4, PORTB3, PORTB2, PORTB1, PORTB0}),
 	      .rxd(RXD), .txd(TXD),
 	      .m_scl(), .m_sda(), .s_scl(), .s_sda(),
-	      .sram_a(), .sram_d_in({8{1'b0}}), .sram_d_out(),
-	      .sram_cs(), .sram_oe(), .sram_we(), .sram_wait(1'b0));
+	      .sram_a(sram_a), .sram_d_in(d_from_ide), .sram_d_out(d_to_ide),
+	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
+	      .sram_wait(sram_wait));
 
 endmodule // top

@@ -2,6 +2,9 @@ verilog_defaults -add -noautowire
 verilog_defaults -add -Iavr/avr_core_v14/rtl/common_packs
 read_verilog top.v
 hierarchy -top top \
+	-libdir ide \
+	-libdir ide/tech/ice40 \
+	-libdir tech/ice40 \
 	-libdir avr \
 	-libdir avr/tech/ice40 \
 	-libdir avr/tech/generic \
