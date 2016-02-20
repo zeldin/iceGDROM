@@ -127,7 +127,9 @@ module ide_interface (
    reg [7:0] command_d, command_q;
    reg [7:0] iocontrol_d, iocontrol_q;
    reg [7:0] iopos_d, iopos_q;
+   reg [7:0] iotarget_d, iotarget_q;
    reg 	     cmd_d, cmd_q;
+   reg 	     data_d, data_q;
    reg 	     hrst_d, hrst_q;
    reg 	     srst_d, srst_q;
    reg       nien_d, nien_q;
@@ -182,7 +184,8 @@ module ide_interface (
 	  4'b0010: sram_d = iocontrol_q;
 	  4'b0011: sram_d = iopos_q;
 	  4'b0100: sram_d = status_q;
-	  4'b0110: sram_d = { 3'b000, cmd_q, hrst_q, srst_q, nien_q, irq_q };
+	  4'b0101: sram_d = iotarget_q;
+	  4'b0110: sram_d = { 2'b00, data_q, cmd_q, hrst_q, srst_q, nien_q, irq_q };
 	  4'b1001: sram_d = features_q;
 	  4'b1010: sram_d = seccnt_q;
 	  4'b1011: sram_d = secnr_q;
@@ -206,7 +209,9 @@ module ide_interface (
       command_d = command_q;
       iocontrol_d = iocontrol_q;
       iopos_d = iopos_q;
+      iotarget_d = iotarget_q;
       cmd_d = cmd_q;
+      data_d = data_q;
       hrst_d = hrst_q;
       srst_d = srst_q;
       nien_d = nien_q;
@@ -223,6 +228,8 @@ module ide_interface (
       if ((read_cycle|write_cycle) & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & drv_selected) begin
 	 /* Read or write Data increments iopos */
 	 iopos_d = iopos_q+1;
+	 if (iopos_q == iotarget_q)
+	   data_d = 1'b1;
       end
       if (sram_cs & sram_we & ~sram_a[9]) begin
 	 case (sram_a[3:0])
@@ -234,6 +241,7 @@ module ide_interface (
 	   4'b0001: error_d = sram_d_in;
 	   4'b0010: iocontrol_d = sram_d_in;
 	   4'b0011: iopos_d = sram_d_in;
+	   4'b0101: iotarget_d = sram_d_in;
 	   4'b0110: begin
 	      if (sram_d_in[2])
 		srst_d = 1'b0;
@@ -241,6 +249,8 @@ module ide_interface (
 		hrst_d = 1'b0;
 	      if (sram_d_in[4])
 		cmd_d = 1'b0;
+	      if (sram_d_in[5])
+		data_d = 1'b0;
 	   end
 	 endcase
       end
@@ -287,7 +297,9 @@ module ide_interface (
 	 command_q <= 8'h00;
 	 iocontrol_q <= 8'h00;
 	 iopos_q <= 8'h00;
+	 iotarget_q <= 8'h00;
 	 cmd_q <= 1'b0;
+	 data_q <= 1'b0;
 	 hrst_q <= 1'b0;
 	 srst_q <= 1'b0;
 	 nien_q <= 1'b0;
@@ -304,7 +316,9 @@ module ide_interface (
 	 command_q <= command_d;
 	 iocontrol_q <= iocontrol_d;
 	 iopos_q <= iopos_d;
+	 iotarget_q <= iotarget_d;
 	 cmd_q <= cmd_d;
+	 data_q <= data_d;
 	 hrst_q <= hrst_d;
 	 srst_q <= srst_d;
 	 nien_q <= nien_d;
