@@ -15,7 +15,7 @@ module ide_interface (
 		      input       reset_,
 		      input       csel,
 		      input       clk,
-		      input[3:0]  sram_a,
+		      input[9:0]  sram_a,
 		      input[7:0]  sram_d_in,
 		      output[7:0] sram_d_out,
 		      input       sram_cs,
@@ -75,6 +75,11 @@ module ide_interface (
    
    wire        rst;
 
+   reg [7:0]   buffer_read_addr, buffer_write_addr;
+   wire [15:0] buffer_read_data;
+   reg [15:0]  buffer_write_data;
+   reg         buffer_write_hi, buffer_write_lo;
+
    reg [6:0]   busctl_old, busctl_cur;
 
    always @(posedge clk) begin
@@ -120,6 +125,8 @@ module ide_interface (
    reg [7:0] cylhi_d, cylhi_q;
    reg [7:0] drvhead_d, drvhead_q;
    reg [7:0] command_d, command_q;
+   reg [7:0] iocontrol_d, iocontrol_q;
+   reg [7:0] iopos_d, iopos_q;
    reg 	     cmd_d, cmd_q;
    reg 	     hrst_d, hrst_q;
    reg 	     srst_d, srst_q;
@@ -135,8 +142,13 @@ module ide_interface (
    assign intrq_level = irq_q;
 
    reg [7:0] sram_d;
-   assign sram_wait = 1'b0;
+   assign sram_wait = sram_cs & sram_oe & sram_a[9] & !sram_wait_q;
    assign sram_d_out = sram_d;
+   reg sram_wait_q;
+
+   always @(posedge clk) begin
+      sram_wait_q <= sram_wait;
+   end
 
    always @(posedge clk) begin
       if (rst) begin
@@ -144,6 +156,7 @@ module ide_interface (
       end else begin
 	 case ({bus_cs1,bus_cs3,bus_addr})
 	   5'b10110: dd_out <= {8'h00, status_q};   /* Alternate status */
+	   5'b01000: dd_out <= buffer_read_data;    /* Data */
 	   5'b01001: dd_out <= {8'h00, error_q};    /* Error register */
 	   5'b01010: dd_out <= {8'h00, seccnt_q};   /* Sector count */
 	   5'b01011: dd_out <= {8'h00, secnr_q};    /* Sector number */
@@ -157,20 +170,28 @@ module ide_interface (
    end
 
    always @(*) begin
-      case (sram_a)
-	 4'b0000: sram_d = status_q;
-	 4'b0001: sram_d = error_q;
-	 4'b0100: sram_d = status_q;
-	 4'b0110: sram_d = { 3'b000, cmd_q, hrst_q, srst_q, nien_q, irq_q };
-	 4'b1001: sram_d = features_q;
-	 4'b1010: sram_d = seccnt_q;
-	 4'b1011: sram_d = secnr_q;
-	 4'b1100: sram_d = cyllo_q;
-	 4'b1101: sram_d = cylhi_q;
-	 4'b1110: sram_d = drvhead_q;
-	 4'b1111: sram_d = command_q;
-	 default: sram_d = 0;
-      endcase // case (sram_a)
+      if (sram_a[9]) begin
+	 if (sram_a[0])
+	   sram_d = buffer_read_data[15:8];
+	 else
+	   sram_d = buffer_read_data[7:0];
+      end else
+	case (sram_a[3:0])
+	  4'b0000: sram_d = status_q;
+	  4'b0001: sram_d = error_q;
+	  4'b0010: sram_d = iocontrol_q;
+	  4'b0011: sram_d = iopos_q;
+	  4'b0100: sram_d = status_q;
+	  4'b0110: sram_d = { 3'b000, cmd_q, hrst_q, srst_q, nien_q, irq_q };
+	  4'b1001: sram_d = features_q;
+	  4'b1010: sram_d = seccnt_q;
+	  4'b1011: sram_d = secnr_q;
+	  4'b1100: sram_d = cyllo_q;
+	  4'b1101: sram_d = cylhi_q;
+	  4'b1110: sram_d = drvhead_q;
+	  4'b1111: sram_d = command_q;
+	  default: sram_d = 0;
+	endcase // case (sram_a[3:0])
    end
    
    always @(*) begin
@@ -183,6 +204,8 @@ module ide_interface (
       cylhi_d = cylhi_q;
       drvhead_d = drvhead_q;
       command_d = command_q;
+      iocontrol_d = iocontrol_q;
+      iopos_d = iopos_q;
       cmd_d = cmd_q;
       hrst_d = hrst_q;
       srst_d = srst_q;
@@ -197,14 +220,20 @@ module ide_interface (
 	 nien_d = dd_in[1];
 	 srst_d = dd_in[2];
       end
-      if (sram_cs & sram_we) begin
-	 case (sram_a)
+      if ((read_cycle|write_cycle) & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & drv_selected) begin
+	 /* Read or write Data increments iopos */
+	 iopos_d = iopos_q+1;
+      end
+      if (sram_cs & sram_we & ~sram_a[9]) begin
+	 case (sram_a[3:0])
 	   4'b0000: begin
 	      status_d = sram_d_in;
 	      irq_d = 1'b1;
 	   end
 	   4'b0100: status_d = sram_d_in;
 	   4'b0001: error_d = sram_d_in;
+	   4'b0010: iocontrol_d = sram_d_in;
+	   4'b0011: iopos_d = sram_d_in;
 	   4'b0110: begin
 	      if (sram_d_in[2])
 		srst_d = 1'b0;
@@ -216,8 +245,8 @@ module ide_interface (
 	 endcase
       end
       if (bsy) begin
-	 if (sram_cs & sram_we) begin
-	    case (sram_a)
+	 if (sram_cs & sram_we & ~sram_a[9]) begin
+	    case (sram_a[3:0])
 	      4'b1001: features_d = sram_d_in;
 	      4'b1010: seccnt_d = sram_d_in;
 	      4'b1011: secnr_d = sram_d_in;
@@ -256,6 +285,8 @@ module ide_interface (
 	 cylhi_q <= 8'h00;
 	 drvhead_q <= 8'h00;
 	 command_q <= 8'h00;
+	 iocontrol_q <= 8'h00;
+	 iopos_q <= 8'h00;
 	 cmd_q <= 1'b0;
 	 hrst_q <= 1'b0;
 	 srst_q <= 1'b0;
@@ -271,6 +302,8 @@ module ide_interface (
 	 cylhi_q <= cylhi_d;
 	 drvhead_q <= drvhead_d;
 	 command_q <= command_d;
+	 iocontrol_q <= iocontrol_d;
+	 iopos_q <= iopos_d;
 	 cmd_q <= cmd_d;
 	 hrst_q <= hrst_d;
 	 srst_q <= srst_d;
@@ -278,6 +311,38 @@ module ide_interface (
 	 irq_q <= irq_d;
       end
    end
+
+   wire bus_data_write, avr_data_write;
+   assign bus_data_write = write_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000);
+   assign avr_data_write = sram_cs & sram_we & sram_a[9];
+
+   always @(*) begin
+      if (iocontrol_q[0]) begin
+	 /* Bus writes, AVR reads */
+	 buffer_write_hi = bus_data_write;
+	 buffer_write_lo = bus_data_write;
+	 buffer_write_addr = iopos_q;
+	 buffer_write_data = dd_in;
+
+	 buffer_read_addr = sram_a[8:1];
+       end else begin
+	 /* Bus reads, AVR writes */
+	 buffer_write_hi = avr_data_write & sram_a[0];
+	 buffer_write_lo = avr_data_write & ~sram_a[0];
+	 buffer_write_addr = sram_a[8:1];
+	 buffer_write_data = {sram_d_in, sram_d_in};
+
+	 buffer_read_addr = iopos_q;
+       end
+   end
+
+   ide_data_buffer buffer_inst(.clk(clk), .rst(rst),
+			       .read_addr(buffer_read_addr),
+			       .read_data(buffer_read_data),
+			       .write_addr(buffer_write_addr),
+			       .write_data(buffer_write_data),
+			       .write_hi(buffer_write_hi),
+			       .write_lo(buffer_write_lo));
 
    ide_reset_generator reset_inst(.rst_in(reset_in), .clk(clk), .rst_out(rst));
 
