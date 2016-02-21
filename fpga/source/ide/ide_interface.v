@@ -300,7 +300,7 @@ module ide_interface (
 	 iotarget_q <= 8'h00;
 	 cmd_q <= 1'b0;
 	 data_q <= 1'b0;
-	 hrst_q <= 1'b0;
+	 hrst_q <= 1'b1;
 	 srst_q <= 1'b0;
 	 nien_q <= 1'b0;
 	 irq_q <= 1'b0;
