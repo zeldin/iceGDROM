@@ -27,7 +27,10 @@ module avr (
 	    output wire                    sram_cs,
 	    output wire                    sram_oe,
 	    output wire                    sram_we,
-	    input  wire                    sram_wait
+	    input  wire                    sram_wait,
+
+	    // IRQ
+	    input  wire                    ext_irq1
             );
 
 parameter pm_size = 1;
@@ -344,6 +347,7 @@ peripherals #(.irqs_width(irqs_width))
 
 		     .irqlines(core_irqlines),
 		     .irq_ack(avr_interconnect_ind_irq_ack),
+		     .ext_irq1(ext_irq1),
 
 		     // PORTA related
 		     .porta_portx(porta_portx),

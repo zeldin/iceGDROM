@@ -21,7 +21,8 @@ module ide_interface (
 		      input       sram_cs,
 		      input       sram_oe,
 		      input       sram_we,
-		      output      sram_wait
+		      output      sram_wait,
+		      output      cpu_irq
 		      );
 
    parameter drv = 1'b0;
@@ -139,6 +140,7 @@ module ide_interface (
    assign    bsy = status_q[7];
    assign drv_selected = (drvhead_q[4] == drv);
 
+   assign cpu_irq = (srst_q | hrst_q | cmd_q | data_q) & ~rst;
 
    assign intrq_enabled = (~nien_q) & drv_selected;
    assign intrq_level = irq_q;

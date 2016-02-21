@@ -59,6 +59,7 @@ module top (
    wire [15:0] sram_a;
    wire [7:0]  d_to_ide, d_from_ide;
    wire sram_cs, sram_oe, sram_we, sram_wait;
+   wire ide_irq;
 
    generate
       if(REFCLK_FREQ != CPU_FREQ) begin : use_clkgen
@@ -88,7 +89,7 @@ module top (
 	      .reset_(G_RST), .csel(1'b0), .clk(clkout),
 	      .sram_a(sram_a), .sram_d_in(d_to_ide), .sram_d_out(d_from_ide),
 	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
-	      .sram_wait(sram_wait));
+	      .sram_wait(sram_wait), .cpu_irq(ide_irq));
 
    avr #(.pm_size(2),
 	 .dm_size(2),
@@ -109,6 +110,6 @@ module top (
 	      .m_scl(), .m_sda(), .s_scl(), .s_sda(),
 	      .sram_a(sram_a), .sram_d_in(d_from_ide), .sram_d_out(d_to_ide),
 	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
-	      .sram_wait(sram_wait));
+	      .sram_wait(sram_wait), .ext_irq1(ide_irq));
 
 endmodule // top

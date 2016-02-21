@@ -25,6 +25,7 @@ module peripherals
     // IRQ interface
     output[irqs_width-1:0] irqlines,
     input[irqs_width-1:0]  irq_ack,
+    input ext_irq1,
 
 			 // PORTA related
 			 output[7:0]                    porta_portx,
@@ -353,7 +354,7 @@ endgenerate
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
- assign irqlines[1]    = 1'b0;
+ assign irqlines[1]    = ext_irq1;
 
 // SPI module
 generate
