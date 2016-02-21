@@ -228,8 +228,10 @@ module ide_interface (
       if ((read_cycle|write_cycle) & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & drv_selected) begin
 	 /* Read or write Data increments iopos */
 	 iopos_d = iopos_q+1;
-	 if (iopos_q == iotarget_q)
-	   data_d = 1'b1;
+	 if (iopos_q == iotarget_q) begin
+	    data_d = 1'b1;
+	    status_d[7] = 1'b1; /* BSY */
+	 end
       end
       if (sram_cs & sram_we & ~sram_a[9]) begin
 	 case (sram_a[3:0])
@@ -286,7 +288,7 @@ module ide_interface (
    
    always @(posedge clk) begin
       if (rst) begin
-	 status_q <= 8'b00000000;
+	 status_q <= 8'b10000000;
 	 error_q <= 8'h00;
 	 features_q <= 8'h00;
 	 seccnt_q <= 8'h00;
