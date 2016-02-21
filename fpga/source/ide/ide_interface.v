@@ -245,6 +245,8 @@ module ide_interface (
 	   4'b0011: iopos_d = sram_d_in;
 	   4'b0101: iotarget_d = sram_d_in;
 	   4'b0110: begin
+	      if (sram_d_in[0])
+		irq_d = 1'b0;
 	      if (sram_d_in[2])
 		srst_d = 1'b0;
 	      if (sram_d_in[3])
