@@ -137,9 +137,10 @@ module ide_interface (
    reg       irq_d, irq_q;
    wire      bsy;
    wire      drv_selected;
+   wire      pio_mode;
    assign    bsy = status_q[7];
    assign drv_selected = (drvhead_q[4] == drv);
-
+   assign pio_mode = iocontrol_q[1];
    assign cpu_irq = (srst_q | hrst_q | cmd_q | data_q) & ~rst;
 
    assign intrq_enabled = (~nien_q) & drv_selected;
@@ -227,7 +228,7 @@ module ide_interface (
 	 nien_d = dd_in[1];
 	 srst_d = dd_in[2];
       end
-      if ((read_cycle|write_cycle) & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & drv_selected) begin
+      if ((read_cycle|write_cycle) & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & drv_selected & pio_mode) begin
 	 /* Read or write Data increments iopos */
 	 iopos_d = iopos_q+1;
 	 if (iopos_q == iotarget_q) begin
@@ -333,7 +334,7 @@ module ide_interface (
    end
 
    wire bus_data_write, avr_data_write;
-   assign bus_data_write = write_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000);
+   assign bus_data_write = write_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & pio_mode;
    assign avr_data_write = sram_cs & sram_we & sram_a[9];
 
    always @(*) begin
