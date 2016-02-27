@@ -114,8 +114,8 @@ module ide_interface (
 
    assign ctrl_blk = (~bus_cs3)&(bus_addr[2:1]==2'b11);
    assign cmnd_blk = ~bus_cs1;
-   assign write_cycle = (~old_diow)&cur_diow&(ctrl_blk|cmnd_blk);
-   assign read_cycle = (~old_dior)&cur_dior&(ctrl_blk|cmnd_blk);
+   assign write_cycle = (~old_diow)&cur_diow;
+   assign read_cycle = (~old_dior)&cur_dior;
 
    reg [7:0] status_d, status_q;
    reg [7:0] error_d, error_q;
