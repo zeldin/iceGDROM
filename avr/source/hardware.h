@@ -8,7 +8,7 @@
 #define UBRR0H _SFR_IO8(0x08)
 
 #define SD_CD_PIN PINB
-#define SD_CD_BIT PIN0
+#define SD_CD_BIT PIN7
 
 
 #define IDE_STATUS     _MMIO_BYTE(0xe000)
