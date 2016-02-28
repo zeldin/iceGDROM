@@ -62,10 +62,10 @@ module top (
    wire ide_irq;
 
    generate
-      if(REFCLK_FREQ != CPU_FREQ) begin : use_clkgen
+      if(REFCLK_FREQ != CPU_FREQ*2) begin : use_clkgen
 
 	 clkgen #(.INCLOCK_FREQ(REFCLK_FREQ),
-		  .OUTCLOCK_FREQ(CPU_FREQ))
+		  .OUTCLOCK_FREQ(CPU_FREQ*2))
 	 clkgen_inst(.clkin(clk), .clkout(clkout), .lock(lock));
 
       end
@@ -81,14 +81,19 @@ module top (
 	    .OUTCLOCK_FREQ(CDCLK_FREQ))
    clkgen_cdclk_inst(.clkin(clk), .clkout(CDCLK), .lock(lock_cdclk));
 
-   ide_interface #(.drv(1'b0))
+   reg clkout_cpu;
+   always @(posedge clkout) begin
+      clkout_cpu <= ~clkout_cpu;
+   end
+
+   ide_interface #(.drv(1'b0), .add_read_ws(0))
      ide_inst(.dd({D15,D14,D13,D12,D11,D10,D9,D8,D7,D6,D5,D4,D3,D2,D1,D0}),
 	      .da({A2,A1,A0}), .cs1fx_(CS0n), .cs3fx_(CS1n), .dasp_(),
 	      .dior_(RDn), .diow_(WRn), .dmack_(DMACKn), .dmarq(DMARQ),
 	      .intrq(INTRQ), .iocs16_(), .iordy(IORDY), .pdiag_(),
 	      .reset_(G_RST), .csel(1'b0), .clk(clkout),
 	      .sram_a(sram_a), .sram_d_in(d_to_ide), .sram_d_out(d_from_ide),
-	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
+	      .sram_cs(sram_cs&~clkout_cpu), .sram_oe(sram_oe), .sram_we(sram_we),
 	      .sram_wait(sram_wait), .cpu_irq(ide_irq));
 
    avr #(.pm_size(2),
@@ -103,7 +108,7 @@ module top (
 	 .pm_init_high(`PM_INIT_HIGH),
 `endif
 	 )
-     avr_inst(.nrst(1'b1), .clk(clkout),
+     avr_inst(.nrst(1'b1), .clk(clkout_cpu),
 	      .porta({LED7, LED6, LED5, LED4, LED3, LED2, LED1, LED0}),
 	      .portb({PORTB7, PORTB6, PORTB5, PORTB4, PORTB3, PORTB2, PORTB1, PORTB0}),
 	      .rxd(RXD), .txd(TXD),

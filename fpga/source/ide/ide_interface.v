@@ -26,6 +26,7 @@ module ide_interface (
 		      );
 
    parameter drv = 1'b0;
+   parameter add_read_ws = 0;
    
    assign dasp_ = 1'bz;
    assign pdiag_ = 1'bz;
@@ -147,13 +148,19 @@ module ide_interface (
    assign intrq_level = irq_q;
 
    reg [7:0] sram_d;
-   assign sram_wait = sram_cs & sram_oe & sram_a[9] & !sram_wait_q;
    assign sram_d_out = sram_d;
-   reg sram_wait_q;
 
-   always @(posedge clk) begin
-      sram_wait_q <= sram_wait;
-   end
+   generate
+      if(add_read_ws) begin : read_ws_is_added
+	 assign sram_wait = sram_cs & sram_oe & sram_a[9] & !sram_wait_q;
+	 reg sram_wait_q;
+	 always @(posedge clk) begin
+	    sram_wait_q <= sram_wait;
+	 end
+      end else begin : read_ws_is_not_added
+	 assign sram_wait = 1'b0;
+      end
+   endgenerate
 
    always @(posedge clk) begin
       if (rst) begin
