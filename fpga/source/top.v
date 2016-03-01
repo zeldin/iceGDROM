@@ -96,7 +96,7 @@ module top (
 	      .sram_cs(sram_cs&~clkout_cpu), .sram_oe(sram_oe), .sram_we(sram_we),
 	      .sram_wait(sram_wait), .cpu_irq(ide_irq));
 
-   avr #(.pm_size(2),
+   avr #(.pm_size(4),
 	 .dm_size(2),
 	 .impl_avr109(1),
 	 .CLK_FREQUENCY(CPU_FREQ),
