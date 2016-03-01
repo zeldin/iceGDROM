@@ -11,6 +11,79 @@
 
 static uint8_t data_mode;
 
+static union {
+  uint8_t cmd;
+  uint8_t data[12];
+  struct {
+    uint8_t cmd;
+    uint8_t pad1;
+    uint8_t start_addr;
+    uint8_t pad2;
+    uint8_t alloc_len;
+  } req_stat, req_mode, set_mode;
+  struct {
+    uint8_t cmd;
+    uint8_t pad[3];
+    uint8_t alloc_len;
+  } req_error;
+  struct {
+    uint8_t cmd;
+    uint8_t select;
+    uint8_t pad;
+    uint8_t alloc_len_hi;
+    uint8_t alloc_len_lo;
+  } get_toc;
+  struct {
+    uint8_t cmd;
+    uint8_t pad1;
+    uint8_t session_nr;
+    uint8_t pad2;
+    uint8_t alloc_len;
+  } req_ses;
+  struct {
+    uint8_t cmd;
+    uint8_t ptype;
+    uint8_t start_point[3];
+    uint8_t pad1;
+    uint8_t reptime;
+    uint8_t pad2;
+    uint8_t end_point[3];
+  } cd_play;
+  struct {
+    uint8_t cmd;
+    uint8_t ptype;
+    uint8_t seek_point[3];
+  } cd_seek;
+  struct {
+    uint8_t cmd;
+    uint8_t pad;
+    uint8_t dir;
+    uint8_t speed;
+  } cd_scan;
+  struct {
+    uint8_t cmd;
+    uint8_t flags;
+    uint8_t start_addr[3];
+    uint8_t pad[3];
+    uint8_t transfer_length[3];
+  } cd_read;
+  struct {
+    uint8_t cmd;
+    uint8_t flags;
+    uint8_t start_addr[3];
+    uint8_t pad;
+    uint8_t transfer_length[2];
+    uint8_t next_addr[3];
+  } cd_read2;
+  struct {
+    uint8_t cmd;
+    uint8_t format;
+    uint8_t pad;
+    uint8_t alloc_len_hi;
+    uint8_t alloc_len_lo;
+  } get_scd;
+} packet;
+
 static void finish_packet(uint8_t error) __attribute__((noinline));
 static void finish_packet(uint8_t error)
 {
@@ -82,7 +155,6 @@ static const uint8_t ses[3][4] PROGMEM = {
 static void do_read_toc()
 {
   uint16_t i;
-  IDE_IOCONTROL = 0x00;
   memset(IDE_DATA_BUFFER, 0xff, 408);
 
   memcpy_P(&IDE_DATA_BUFFER[0], toc0, sizeof(toc0));
@@ -100,8 +172,7 @@ static void do_read_toc()
 
 static void do_req_ses()
 {
-  uint8_t s = IDE_DATA_BUFFER[2];
-  IDE_IOCONTROL = 0x00;
+  uint8_t s = packet.req_ses.session_nr;
   if (s > 2) {
     finish_packet(0x50);
     return;
@@ -115,9 +186,8 @@ static void do_req_ses()
 
 static void do_req_mode()
 {
-  uint8_t addr = IDE_DATA_BUFFER[2];
-  uint8_t len = IDE_DATA_BUFFER[4];
-  IDE_IOCONTROL = 0x00;
+  uint8_t addr = packet.req_mode.start_addr;
+  uint8_t len = packet.req_mode.alloc_len;
   if (addr == 18 && len == 8) {
     memcpy_P(&IDE_DATA_BUFFER[0], gdrom_version, sizeof(gdrom_version));
     packet_data_last(8);
@@ -130,8 +200,8 @@ static void do_req_mode()
 
 static void do_set_mode()
 {
-  uint8_t addr = IDE_DATA_BUFFER[2];
-  uint8_t len = IDE_DATA_BUFFER[4];
+  uint8_t addr = packet.set_mode.start_addr;
+  uint8_t len = packet.set_mode.alloc_len;
   if(addr == 0 && len == 10) {
     IDE_SECCNT = 0x00; /* C/D=0 I/O=0 REL=0 */
     IDE_CYLHI = 0;
@@ -148,7 +218,6 @@ static void do_set_mode()
 
 static void do_cmd71()
 {
-  IDE_IOCONTROL = 0x00;
   memcpy_P(&IDE_DATA_BUFFER[0], cmd71_reply, sizeof(cmd71_reply));
 
   packet_data_last(sizeof(cmd71_reply));
@@ -157,7 +226,6 @@ static void do_cmd71()
 static void do_req_error()
 {
   uint8_t i;
-  IDE_IOCONTROL = 0x00;
   memset(IDE_DATA_BUFFER, 0, 10); /* FIXME */
 
   packet_data_last(10);
@@ -165,12 +233,12 @@ static void do_req_error()
 
 static void process_packet()
 {
+  memcpy(&packet, IDE_DATA_BUFFER, 12);
+  IDE_IOCONTROL = 0x00;
   DEBUG_PUTS("[PKT ");
-  uint8_t i;
-  for (i=0; i<12; i++)
-    DEBUG_PUTX(IDE_DATA_BUFFER[i]);
+  DEBUG_PUTX(packet.cmd);
   DEBUG_PUTS("]\n");
-  switch (IDE_DATA_BUFFER[0]) {
+  switch (packet.cmd) {
   case 0x71:
     do_cmd71();
     break;
