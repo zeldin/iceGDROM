@@ -11,6 +11,14 @@
 
 static uint8_t data_mode;
 
+#define SERVICE_MODE_IDLE  0
+#define SERVICE_MODE_RESET 1
+#define SERVICE_MODE_CMD   2
+#define SERVICE_MODE_DATA  3
+
+static uint8_t service_mode;
+static uint8_t service_dma;
+
 static union {
   uint8_t cmd;
   uint8_t data[12];
@@ -92,6 +100,14 @@ static void finish_packet(uint8_t error)
   IDE_STATUS = (error? 0x51 : 0x50); /* BSY=0 */
 }
 
+static void service_finish_packet(uint8_t error)
+{
+  cli();
+  if (service_mode != SERVICE_MODE_RESET)
+    finish_packet(error);
+  sei();
+}
+
 static void finish_packet_ok()
 {
   finish_packet(0);
@@ -110,6 +126,14 @@ static void packet_data_last(uint16_t cnt)
   IDE_IOPOSITION = 0x00;
   IDE_IOTARGET = (cnt>>1)-1;
   IDE_STATUS = 0x58; /* DRQ = 1 BSY = 0 */
+}
+
+static void service_packet_data_last(uint16_t cnt)
+{
+  cli();
+  if (service_mode != SERVICE_MODE_RESET)
+    packet_data_last(cnt);
+  sei();
 }
 
 static const uint8_t gdrom_version[] PROGMEM = "Rev 5.07";
@@ -151,38 +175,6 @@ static const uint8_t ses[3][4] PROGMEM = {
   { 0x01, 0x00, 0x00, 0x96 },
   { 0x02, 0x00, 0x2e, 0x4c },
 };
-
-static void do_read_toc()
-{
-  uint16_t i;
-  memset(IDE_DATA_BUFFER, 0xff, 408);
-
-  memcpy_P(&IDE_DATA_BUFFER[0], toc0, sizeof(toc0));
-  memcpy_P(&IDE_DATA_BUFFER[0x18c], toc1, sizeof(toc1));
-
-#if 0
-  DEBUG_PUTC('{');
-  DEBUG_PUTX(IDE_CYLHI);
-  DEBUG_PUTX(IDE_CYLLO);
-  DEBUG_PUTS("}\n");
-#endif
-
-  packet_data_last(408);
-}
-
-static void do_req_ses()
-{
-  uint8_t s = packet.req_ses.session_nr;
-  if (s > 2) {
-    finish_packet(0x50);
-    return;
-  }
-  IDE_DATA_BUFFER[0] = IDE_SECNR&0x0f;
-  IDE_DATA_BUFFER[1] = 0;
-  memcpy_P(&IDE_DATA_BUFFER[2], ses[s], sizeof(ses[s]));
-
-  packet_data_last(6);
-}
 
 static void do_req_mode()
 {
@@ -255,18 +247,14 @@ static void process_packet()
   case 0x13: /* REQ_ERROR */
     do_req_error();
     break;
+
   case 0x14: /* GET_TOC */
-    do_read_toc();
-    break;
   case 0x15: /* REQ_SES */
-    do_req_ses();
-    break;
   case 0x30: /* CD_READ */
-    if (IDE_FEATURES & 1)
-      DEBUG_PUTS("[DMA READ]\n");
-    else
-      DEBUG_PUTS("[PIO READ]\n");
-    /* Fallthru */
+    service_dma = (IDE_FEATURES & 1);
+    service_mode = SERVICE_MODE_CMD;
+    break;
+
   default:
     finish_packet(0x04); /* Abort */
     break;
@@ -283,7 +271,7 @@ static void reset_irq()
   IDE_SECNR = 0x22;
 #endif
   IDE_DEVCON = 0x01; /* Negate INTRQ */
-  IDE_ALT_STATUS = 0x00; /* Clear BSY */
+  service_mode = SERVICE_MODE_RESET;
 }
 
 static void cmd_irq()
@@ -367,3 +355,90 @@ ISR(INT1_vect)
     data_irq();
 }
 
+static void service_get_toc()
+{
+  uint16_t i;
+  memset(IDE_DATA_BUFFER, 0xff, 408);
+
+  memcpy_P(&IDE_DATA_BUFFER[0], toc0, sizeof(toc0));
+  memcpy_P(&IDE_DATA_BUFFER[0x18c], toc1, sizeof(toc1));
+
+#if 0
+  DEBUG_PUTC('{');
+  DEBUG_PUTX(IDE_CYLHI);
+  DEBUG_PUTX(IDE_CYLLO);
+  DEBUG_PUTS("}\n");
+#endif
+
+  service_packet_data_last(408);
+}
+
+static void service_req_ses()
+{
+  uint8_t s = packet.req_ses.session_nr;
+  if (s > 2) {
+    service_finish_packet(0x50);
+    return;
+  }
+  IDE_DATA_BUFFER[0] = IDE_SECNR&0x0f;
+  IDE_DATA_BUFFER[1] = 0;
+  memcpy_P(&IDE_DATA_BUFFER[2], ses[s], sizeof(ses[s]));
+
+  service_packet_data_last(6);
+}
+
+static void service_reset()
+{
+}
+
+static void service_cmd()
+{
+  DEBUG_PUTS("[SVC ");
+  DEBUG_PUTX(packet.cmd);
+  DEBUG_PUTS("]\n");
+  switch(packet.cmd) {
+  case 0x14: /* GET_TOC */
+    service_get_toc();
+    break;
+  case 0x15: /* REQ_SES */
+    service_req_ses();
+    break;
+  case 0x30: /* CD_READ */
+    if (service_dma)
+      DEBUG_PUTS("[DMA READ]\n");
+    else
+      DEBUG_PUTS("[PIO READ]\n");
+    /* Fallthru */
+  default:
+    service_finish_packet(0x04); /* Abort */
+    break;
+  }
+}
+
+static void service_data()
+{
+}
+
+void service_ide()
+{
+  uint8_t mode;
+  cli();
+  mode = service_mode;
+  service_mode = SERVICE_MODE_IDLE;
+  if (mode == SERVICE_MODE_RESET)
+    IDE_ALT_STATUS = 0x00; /* Clear BSY */
+  sei();
+  switch (mode) {
+  case SERVICE_MODE_IDLE:
+    return;
+  case SERVICE_MODE_RESET:
+    service_reset();
+    break;
+  case SERVICE_MODE_CMD:
+    service_cmd();
+    break;
+  case SERVICE_MODE_DATA:
+    service_data();
+    break;
+  }
+}

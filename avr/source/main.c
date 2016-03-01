@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "delay.h"
 #include "sdcard.h"
+#include "ide.h"
 #include "fatfs.h"
 #include "timer.h"
 
@@ -18,7 +19,9 @@ void handle_sdcard()
     if (fatfs_mount())
       fatfs_read_rootdir();
 
-  loop_until_bit_is_clear(SD_CD_PIN, SD_CD_BIT);
+  while (bit_is_set(SD_CD_PIN, SD_CD_BIT))
+    service_ide();
+
   DEBUG_PUTS("[Card extracted]\n");
 }
 
@@ -38,6 +41,8 @@ int main()
     delayms(250);
     if (!(leds <<= 1))
 	leds++;
+
+    service_ide();
 
     if (bit_is_set(SD_CD_PIN, SD_CD_BIT))
       handle_sdcard();
