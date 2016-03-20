@@ -43,14 +43,15 @@ module ide_interface (
    ide_status_pin dmack_pin(.pin(dmack_), .in(dmack_in), .clk(clk));
    ide_status_pin reset_pin(.pin(reset_), .in(reset_in), .clk(clk));
    
-   wire dmarq_asserted;
+   wire dmarq_enabled;
+   wire dmarq_level;
    wire intrq_enabled;
    wire intrq_level;
    wire iocs16_asserted;
    wire iowait;
    
    ide_control_pin
-     dmarq_pin(.pin(dmarq), .out(1'b1), .enable(dmarq_asserted), .clk(clk));
+     dmarq_pin(.pin(dmarq), .out(dmarq_level), .enable(dmarq_enabled), .clk(clk));
    ide_control_pin
      intrq_pin(.pin(intrq), .out(intrq_level), .enable(intrq_enabled), .clk(clk));
    ide_control_pin
@@ -58,7 +59,8 @@ module ide_interface (
    ide_control_pin
      iordy_pin(.pin(iordy), .out(1'b0), .enable(iowait), .clk(clk));
 
-   assign dmarq_asserted = 1'b0;
+   assign dmarq_enabled = dma_mode&drv_selected;
+   assign dmarq_level = dmarq_q;
    assign iocs16_asserted = 1'b0;
    assign iowait = 1'b0;
 
@@ -73,7 +75,7 @@ module ide_interface (
 					.clk({16{clk}}));
 
    assign dd_latch = diow_in;
-   assign dd_enable = (ctrl_blk|cmnd_blk)&(~cur_dior)&drv_selected;
+   assign dd_enable = (ctrl_blk|cmnd_blk|dma_active)&(~cur_dior)&drv_selected;
    
    wire        rst;
 
@@ -82,15 +84,15 @@ module ide_interface (
    reg [15:0]  buffer_write_data;
    reg         buffer_write_hi, buffer_write_lo;
 
-   reg [6:0]   busctl_old, busctl_cur;
+   reg [7:0]   busctl_old, busctl_cur;
 
    always @(posedge clk) begin
       if (rst) begin
-	 busctl_old <= 7'b1111000;
+	 busctl_old <= 8'b11111000;
       end else begin
 	 busctl_old <= busctl_cur;
       end
-      busctl_cur <= {diow_in,dior_in,cs3fx_in,cs1fx_in,da_in};
+      busctl_cur <= {dmack_in,diow_in,dior_in,cs3fx_in,cs1fx_in,da_in};
    end
 
    wire[2:0] bus_addr;
@@ -100,6 +102,8 @@ module ide_interface (
    wire      old_diow;
    wire      cur_dior;
    wire      cur_diow;
+   wire      cur_dmack;
+   wire      old_dmack;
    assign bus_addr = busctl_old[2:0];
    assign bus_cs1 = busctl_old[3];
    assign bus_cs3 = busctl_old[4];
@@ -107,14 +111,18 @@ module ide_interface (
    assign old_diow = busctl_old[6];
    assign cur_dior = busctl_cur[5];
    assign cur_diow = busctl_cur[6];
+   assign cur_dmack = busctl_cur[7];
+   assign old_dmack = busctl_old[7];
 
    wire ctrl_blk;
    wire cmnd_blk;
    wire write_cycle;
    wire read_cycle;
+   wire dma_active;
 
    assign ctrl_blk = (~bus_cs3)&(bus_addr[2:1]==2'b11);
    assign cmnd_blk = ~bus_cs1;
+   assign dma_active = dma_mode&~cur_dmack;
    assign write_cycle = (~old_diow)&cur_diow;
    assign read_cycle = (~old_dior)&cur_dior;
 
@@ -136,12 +144,15 @@ module ide_interface (
    reg 	     srst_d, srst_q;
    reg       nien_d, nien_q;
    reg       irq_d, irq_q;
+   reg       dmarq_d, dmarq_q;
    wire      bsy;
    wire      drv_selected;
    wire      pio_mode;
+   wire      dma_mode;
    assign    bsy = status_q[7];
    assign drv_selected = (drvhead_q[4] == drv);
    assign pio_mode = iocontrol_q[1];
+   assign dma_mode = iocontrol_q[2];
    assign cpu_irq = (srst_q | hrst_q | cmd_q | data_q) & ~rst;
 
    assign intrq_enabled = (~nien_q) & drv_selected;
@@ -165,6 +176,8 @@ module ide_interface (
    always @(posedge clk) begin
       if (rst) begin
 	 dd_out <= 16'h0000;
+      end else if (dma_active) begin
+	 dd_out <= buffer_read_data;
       end else begin
 	 case ({bus_cs1,bus_cs3,bus_addr})
 	   5'b10110: dd_out <= {8'h00, status_q};   /* Alternate status */
@@ -226,6 +239,7 @@ module ide_interface (
       srst_d = srst_q;
       nien_d = nien_q;
       irq_d = irq_q;
+      dmarq_d = dmarq_q;
       if (read_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01111) & drv_selected) begin
 	 /* Read status register; clear IRQ */
 	 irq_d = 1'b0;
@@ -243,6 +257,17 @@ module ide_interface (
 	    status_d[7] = 1'b1; /* BSY */
 	 end
       end
+      if (read_cycle & dma_mode & ~old_dmack) begin
+	 /* DMA read */
+	 iopos_d = iopos_q+1;
+	 if (iopos_q == iotarget_q) begin
+	    data_d = 1'b1;
+	    iocontrol_d[2] = 1'b0; /* Disable DMA */
+	 end
+      end
+      if (dma_mode & ~old_dmack & ~cur_dior & (iopos_q == iotarget_q)) begin
+	 dmarq_d = 1'b0; /* Last word, so negate DMARQ */
+      end
       if (sram_cs & sram_we & ~sram_a[9]) begin
 	 case (sram_a[3:0])
 	   4'b0000: begin
@@ -251,7 +276,10 @@ module ide_interface (
 	   end
 	   4'b0100: status_d = sram_d_in;
 	   4'b0001: error_d = sram_d_in;
-	   4'b0010: iocontrol_d = sram_d_in;
+	   4'b0010: begin
+	      iocontrol_d = sram_d_in;
+	      dmarq_d = sram_d_in[2];
+	   end
 	   4'b0011: iopos_d = sram_d_in;
 	   4'b0101: iotarget_d = sram_d_in;
 	   4'b0110: begin
@@ -318,6 +346,7 @@ module ide_interface (
 	 srst_q <= 1'b0;
 	 nien_q <= 1'b0;
 	 irq_q <= 1'b0;
+	 dmarq_q <= 1'b0;
       end else begin
 	 status_q <= status_d;
 	 error_q <= error_d;
@@ -337,6 +366,7 @@ module ide_interface (
 	 srst_q <= srst_d;
 	 nien_q <= nien_d;
 	 irq_q <= irq_d;
+	 dmarq_q <= dmarq_d;
       end
    end
 
