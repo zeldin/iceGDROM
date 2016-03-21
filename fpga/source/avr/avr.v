@@ -331,7 +331,7 @@ assign pm_we_l = prog_mode & prog_low;
 // DM interface
 assign dm_adr[15:0] = avr_interconnect_ramadr[15:0];
 assign dm_dout[7:0] = avr_interconnect_ramdout[7:0];
-assign dm_we        = avr_interconnect_ramwe;
+assign dm_we        = avr_interconnect_ramwe&~dm_adr[15];
 
 
 peripherals #(.irqs_width(irqs_width))
