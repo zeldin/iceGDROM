@@ -305,7 +305,6 @@ module ide_interface (
 	      4'b1100: cyllo_d = sram_d_in;
 	      4'b1101: cylhi_d = sram_d_in;
 	      4'b1110: drvhead_d = sram_d_in;
-	      4'b1111: command_d = sram_d_in;
 	    endcase
 	 end
       end else if (write_cycle) begin
@@ -316,13 +315,14 @@ module ide_interface (
 	   5'b01100: cyllo_d = dd_in[7:0];
 	   5'b01101: cylhi_d = dd_in[7:0];
 	   5'b01110: drvhead_d = dd_in[7:0];
-	   5'b01111: begin /* Command */
-	      irq_d = 1'b0;
-	      command_d = dd_in[7:0];
-	      status_d[7] = 1'b1; /* BSY */
-	      cmd_d = 1'b1;
-	   end
 	 endcase
+      end
+      if (write_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01111)) begin
+	 /* Write to Command */
+	 irq_d = 1'b0;
+	 command_d = dd_in[7:0];
+	 status_d[7] = 1'b1; /* BSY */
+	 cmd_d = 1'b1;
       end
    end
    
