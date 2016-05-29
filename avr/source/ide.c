@@ -154,6 +154,16 @@ static void service_packet_data_last(uint16_t cnt)
   sei();
 }
 
+static void service_packet_data_cont(uint16_t cnt)
+{
+  cli();
+  if (service_mode == SERVICE_MODE_IDLE) {
+    packet_data_last(cnt);
+    data_mode = DATA_MODE_CONT;
+  }
+  sei();
+}
+
 static void service_packet_data_dma(uint16_t cnt)
 {
   cli();
@@ -417,7 +427,11 @@ static void service_req_ses()
 
 static void service_cd_read_cont()
 {
-  DEBUG_PUTS("[DMA READ CONT][");
+  if (service_dma) {
+    DEBUG_PUTS("[DMA READ CONT][");
+  } else {
+    DEBUG_PUTS("[PIO READ CONT][");
+  }
   if (!service_sectors_left) {
     DEBUG_PUTS("COMPLETE]\n");
     service_finish_packet(0);
@@ -435,18 +449,22 @@ static void service_cd_read_cont()
     DEBUG_PUTX(IDE_DATA_BUFFER[i]);
   IDE_IOCONTROL = 0x00;
   DEBUG_PUTS("]\n");
-  service_packet_data_dma_full();
+  if (service_dma) {
+    service_packet_data_dma_full();
+  } else if(service_sectors_left) {
+    service_packet_data_cont(512);
+  } else {
+    service_packet_data_last(512);
+  }
 }
 
 static void service_cd_read()
 {
-  if (!service_dma) {
-    DEBUG_PUTS("[PIO READ]\n");
-    service_finish_packet(0x04); /* Abort */
-    return;
+  if (service_dma) {
+    DEBUG_PUTS("[DMA READ ");
+  } else {
+    DEBUG_PUTS("[PIO READ ");
   }
-
-  DEBUG_PUTS("[DMA READ ");
   DEBUG_PUTX(packet.cd_read.start_addr[0]);
   DEBUG_PUTX(packet.cd_read.start_addr[1]);
   DEBUG_PUTX(packet.cd_read.start_addr[2]);
