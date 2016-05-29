@@ -12,8 +12,8 @@ delay1ms:
 	ldi	r24,1
 delayms:
 3:
-	;; 22359 cycles
-	ldi	r21,29
+	;; 16191 cycles
+	ldi	r21,21
 2:
 	;; 768 cycles
 	clr	r20
@@ -25,8 +25,8 @@ delayms:
 	brne	2b
 
 
-	;; 219 cycles
-	ldi	r20,73
+	;; 741 cycles
+	ldi	r20,247
 1:
 	dec	r20
 	brne	1b

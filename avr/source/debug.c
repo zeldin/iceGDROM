@@ -3,7 +3,7 @@
 #include "hardware.h"
 #include "debug.h"
 
-#define CLKRATE 22579200
+#define CLKRATE 16934400
 #define BAUDRATE 115200
 
 #ifndef NDEBUG

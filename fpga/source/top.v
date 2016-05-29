@@ -53,19 +53,20 @@ module top (
 
    localparam REFCLK_FREQ = 11289600;
    localparam CDCLK_FREQ = 33868800;
-   localparam CPU_FREQ = 22579200;
+   localparam CPU_FREQ = 16934400;
 
    wire clkout, lock, lock_cdclk;
    wire [15:0] sram_a;
    wire [7:0]  d_to_ide, d_from_ide;
    wire sram_cs, sram_oe, sram_we, sram_wait;
    wire ide_irq;
+   reg ide_irq_sync;
 
    generate
-      if(REFCLK_FREQ != CPU_FREQ*2) begin : use_clkgen
+      if(REFCLK_FREQ != CPU_FREQ*4) begin : use_clkgen
 
 	 clkgen #(.INCLOCK_FREQ(REFCLK_FREQ),
-		  .OUTCLOCK_FREQ(CPU_FREQ*2))
+		  .OUTCLOCK_FREQ(CPU_FREQ*4))
 	 clkgen_inst(.clkin(clk), .clkout(clkout), .lock(lock));
 
       end
@@ -81,9 +82,13 @@ module top (
 	    .OUTCLOCK_FREQ(CDCLK_FREQ))
    clkgen_cdclk_inst(.clkin(clk), .clkout(CDCLK), .lock(lock_cdclk));
 
-   reg clkout_cpu;
+   reg clkout_cpu, clkout_cpu2;
    always @(posedge clkout) begin
-      clkout_cpu <= ~clkout_cpu;
+      clkout_cpu2 <= ~clkout_cpu2;
+      if (~clkout_cpu2)
+	clkout_cpu <= ~clkout_cpu;
+      if (~clkout_cpu&~clkout_cpu2)
+	ide_irq_sync <= ide_irq;
    end
 
    ide_interface #(.drv(1'b0), .add_read_ws(0))
@@ -93,7 +98,7 @@ module top (
 	      .intrq(INTRQ), .iocs16_(), .iordy(IORDY), .pdiag_(),
 	      .reset_(G_RST), .csel(1'b0), .clk(clkout),
 	      .sram_a(sram_a), .sram_d_in(d_to_ide), .sram_d_out(d_from_ide),
-	      .sram_cs(sram_cs&~clkout_cpu), .sram_oe(sram_oe), .sram_we(sram_we),
+	      .sram_cs(sram_cs&~clkout_cpu&~clkout_cpu2), .sram_oe(sram_oe), .sram_we(sram_we),
 	      .sram_wait(sram_wait), .cpu_irq(ide_irq));
 
    avr #(.pm_size(4),
@@ -115,6 +120,6 @@ module top (
 	      .m_scl(), .m_sda(), .s_scl(), .s_sda(),
 	      .sram_a(sram_a), .sram_d_in(d_from_ide), .sram_d_out(d_to_ide),
 	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
-	      .sram_wait(sram_wait), .ext_irq1(ide_irq));
+	      .sram_wait(sram_wait), .ext_irq1(ide_irq_sync));
 
 endmodule // top

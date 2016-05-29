@@ -22,15 +22,15 @@ static __inline void sd_spi_enable_init()
   PORTB = _BV(SPI_CS);
   DDRB = _BV(SPI_CS)|_BV(SPI_MOSI)|_BV(SPI_SCK);
   SPSR &= ~_BV(SPI2X);
-  SPCR = _BV(SPE)|_BV(MSTR)|_BV(SPR1); /* 22.6MHz/64 = 353kHz */
+  SPCR = _BV(SPE)|_BV(MSTR)|_BV(SPR1); /* 16.93MHz/64 = 264.6kHz */
   PORTB |= _BV(SPI_MOSI);
 }
 
 static __inline void sd_spi_enable()
 {
   SPSR &= ~_BV(SPI2X);
-  /* SPSR |= _BV(SPI2X); */
-  SPCR = _BV(SPE)|_BV(MSTR); /* 22.6MHz/4 = 5.65MHz */
+ /* SPSR |= _BV(SPI2X); */
+  SPCR = _BV(SPE)|_BV(MSTR); /* 16.93MHz/4 = 4.23MHz */
   PORTB |= _BV(SPI_MOSI);
 }
 
@@ -94,9 +94,9 @@ static uint8_t sd_send_cmd_param32(uint8_t cmd, uint32_t param)
   } else {
     /* Slow path */
     for (cnt=0; (PINB & _BV(SPI_MISO)) && cnt<32; cnt++) {
-      delaycycles(32);
+      delaycycles(24);
       PORTB |= _BV(SPI_SCK);
-      delaycycles(32);
+      delaycycles(24);
       PORTB &= ~_BV(SPI_SCK);
     }
   }
