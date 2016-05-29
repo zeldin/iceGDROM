@@ -195,3 +195,42 @@ bool fatfs_read_rootdir()
   }
   return false;
 }
+
+bool fatfs_seek(struct fatfs_handle *handle, uint32_t sector_nr)
+{
+  handle->cluster_nr = 7;
+  handle->pos = 0;
+  while((sector_nr ^ handle->pos) >= blocks_per_cluster) {
+    if (handle->cluster_nr & FAT_EOC)
+      break;
+    handle->cluster_nr = get_fat_entry(handle->cluster_nr);
+    handle->pos += blocks_per_cluster;
+  }
+  handle->pos = sector_nr;
+  return true;
+}
+
+bool fatfs_read_next_sector(struct fatfs_handle *handle, uint8_t *buf)
+{
+  if (handle->cluster_nr & FAT_EOC)
+    return false;
+  uint8_t blk = (handle->pos&0xff)&(blocks_per_cluster-1);
+  if (!sd_read_block(data_start+(handle->cluster_nr<<cluster_shift)+blk, buf))
+    return false;
+  if (++blk == blocks_per_cluster)
+    handle->cluster_nr = get_fat_entry(handle->cluster_nr);
+  handle->pos++;
+  return true;
+}
+
+
+bool fatfs_read_block(uint32_t cluster, uint16_t blk, uint8_t *buf)
+{
+  while(blk >= blocks_per_cluster) {
+    cluster = get_fat_entry(cluster);
+    if (cluster & FAT_EOC)
+      return false;
+    blk -= blocks_per_cluster;
+  }
+  return sd_read_block(data_start+(cluster<<cluster_shift)+blk, buf);
+}

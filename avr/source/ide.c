@@ -4,10 +4,12 @@
 
 #include "hardware.h"
 #include "debug.h"
+#include "fatfs.h"
 
 #define DATA_MODE_IDLE   0
 #define DATA_MODE_PACKET 1
 #define DATA_MODE_LAST   2
+#define DATA_MODE_CONT   3
 
 static uint8_t data_mode;
 
@@ -18,6 +20,8 @@ static uint8_t data_mode;
 
 static uint8_t service_mode;
 static uint8_t service_dma;
+static uint16_t service_sectors_left;
+static struct fatfs_handle read_handle;
 
 static union {
   uint8_t cmd;
@@ -103,7 +107,7 @@ static void finish_packet(uint8_t error)
 static void service_finish_packet(uint8_t error)
 {
   cli();
-  if (service_mode != SERVICE_MODE_RESET)
+  if (service_mode == SERVICE_MODE_IDLE)
     finish_packet(error);
   sei();
 }
@@ -128,12 +132,39 @@ static void packet_data_last(uint16_t cnt)
   IDE_STATUS = 0x58; /* DRQ = 1 BSY = 0 */
 }
 
+static void packet_data_dma(uint16_t cnt) __attribute__((noinline));
+static void packet_data_dma(uint16_t cnt)
+{
+
+  IDE_SECCNT = 0x02; /* C/D=0 I/O=1 REL=0 */
+  IDE_CYLHI = cnt>>8;
+  IDE_CYLLO = cnt&0xff;
+
+  data_mode = DATA_MODE_CONT;
+  IDE_IOPOSITION = 0x00;
+  IDE_IOTARGET = (cnt>>1)-1;
+  IDE_IOCONTROL = 0x04; /* DMA out */
+}
+
 static void service_packet_data_last(uint16_t cnt)
 {
   cli();
-  if (service_mode != SERVICE_MODE_RESET)
+  if (service_mode == SERVICE_MODE_IDLE)
     packet_data_last(cnt);
   sei();
+}
+
+static void service_packet_data_dma(uint16_t cnt)
+{
+  cli();
+  if (service_mode == SERVICE_MODE_IDLE)
+    packet_data_dma(cnt);
+  sei();
+}
+
+static void service_packet_data_dma_full()
+{
+  service_packet_data_dma(512);
 }
 
 static const uint8_t gdrom_version[] PROGMEM = "Rev 5.07";
@@ -280,6 +311,7 @@ static void cmd_irq()
   DEBUG_PUTX(IDE_COMMAND);
   DEBUG_PUTC(']');
   data_mode = DATA_MODE_IDLE;
+  IDE_IOCONTROL = 0x00;
   switch (IDE_COMMAND) {
   case 0xa0:
     /* Packet */
@@ -334,6 +366,9 @@ static void data_irq()
     DEBUG_PUTC('\n');
     finish_packet_ok();
     break;
+  case DATA_MODE_CONT:
+    service_mode = SERVICE_MODE_DATA;
+    break;
   default:
     DEBUG_PUTS("[*DATA]\n");
     IDE_ALT_STATUS = 0x50;
@@ -363,13 +398,6 @@ static void service_get_toc()
   memcpy_P(&IDE_DATA_BUFFER[0], toc0, sizeof(toc0));
   memcpy_P(&IDE_DATA_BUFFER[0x18c], toc1, sizeof(toc1));
 
-#if 0
-  DEBUG_PUTC('{');
-  DEBUG_PUTX(IDE_CYLHI);
-  DEBUG_PUTX(IDE_CYLLO);
-  DEBUG_PUTS("}\n");
-#endif
-
   service_packet_data_last(408);
 }
 
@@ -385,6 +413,63 @@ static void service_req_ses()
   memcpy_P(&IDE_DATA_BUFFER[2], ses[s], sizeof(ses[s]));
 
   service_packet_data_last(6);
+}
+
+static void service_cd_read_cont()
+{
+  DEBUG_PUTS("[DMA READ CONT][");
+  if (!service_sectors_left) {
+    DEBUG_PUTS("COMPLETE]\n");
+    service_finish_packet(0);
+    return;
+  }
+  if (!fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0])) {
+    DEBUG_PUTS("READ ERROR]\n");
+    service_finish_packet(0x04); /* Abort */
+    return;
+  }
+  --service_sectors_left;
+  IDE_IOCONTROL = 0x01;
+  uint8_t i;
+  for(i=0; i<16; i++)
+    DEBUG_PUTX(IDE_DATA_BUFFER[i]);
+  IDE_IOCONTROL = 0x00;
+  DEBUG_PUTS("]\n");
+  service_packet_data_dma_full();
+}
+
+static void service_cd_read()
+{
+  if (!service_dma) {
+    DEBUG_PUTS("[PIO READ]\n");
+    service_finish_packet(0x04); /* Abort */
+    return;
+  }
+
+  DEBUG_PUTS("[DMA READ ");
+  DEBUG_PUTX(packet.cd_read.start_addr[0]);
+  DEBUG_PUTX(packet.cd_read.start_addr[1]);
+  DEBUG_PUTX(packet.cd_read.start_addr[2]);
+  DEBUG_PUTC(' ');
+  DEBUG_PUTX(packet.cd_read.transfer_length[1]);
+  DEBUG_PUTX(packet.cd_read.transfer_length[2]);
+#if 1
+  DEBUG_PUTC(' ');
+  DEBUG_PUTC('{');
+  DEBUG_PUTX(IDE_CYLHI);
+  DEBUG_PUTX(IDE_CYLLO);
+  DEBUG_PUTS("}\n");
+#endif
+  DEBUG_PUTC(']');
+  service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2])<<2;
+  uint16_t blk = (packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
+  blk -= 0x2e4c;
+  if (!fatfs_seek(&read_handle, blk<<2)) {
+    DEBUG_PUTS("[SEEK ERROR]\n");
+    service_finish_packet(0x04); /* Abort */
+    return;
+  }
+  service_cd_read_cont();
 }
 
 static void service_reset()
@@ -404,11 +489,8 @@ static void service_cmd()
     service_req_ses();
     break;
   case 0x30: /* CD_READ */
-    if (service_dma)
-      DEBUG_PUTS("[DMA READ]\n");
-    else
-      DEBUG_PUTS("[PIO READ]\n");
-    /* Fallthru */
+    service_cd_read();
+    break;
   default:
     service_finish_packet(0x04); /* Abort */
     break;
@@ -417,6 +499,17 @@ static void service_cmd()
 
 static void service_data()
 {
+  DEBUG_PUTS("[SVC ");
+  DEBUG_PUTX(packet.cmd);
+  DEBUG_PUTS("]\n");
+  switch(packet.cmd) {
+    case 0x30: /* CD_READ */
+      service_cd_read_cont();
+      break;
+  default:
+    service_finish_packet(0x04); /* Abort */
+    break;
+  }
 }
 
 void service_ide()
