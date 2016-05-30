@@ -10,6 +10,7 @@ static uint32_t fat_start, data_start, root_dir_start;
 static uint16_t root_dir_entries;
 static uint8_t cluster_shift, blocks_per_cluster;
 static bool fat32;
+static uint32_t file_start_cluster;
 
 #define data_block cache[0]
 #define fat_block cache[1]
@@ -178,6 +179,21 @@ bool fatfs_read_rootdir()
       for(i=0; i<11; i++)
 	DEBUG_PUTC(p[i]);
       DEBUG_PUTC('\n');
+      if (!memcmp_P(p, PSTR("DISC0000GI0"), 11)) {
+	DEBUG_PUTS("Found target at ");
+	if (fat32) {
+	  DEBUG_PUTX(p[21]);
+	  DEBUG_PUTX(p[20]);
+	}
+	DEBUG_PUTX(p[27]);
+	DEBUG_PUTX(p[26]);
+	DEBUG_PUTC('\n');
+	file_start_cluster = *(uint16_t *)(p+26);
+	if (fat32) {
+	  ((uint16_t *)&file_start_cluster)[1] = *(uint16_t *)(p+20);
+	}
+	return true;
+      }
     }
     p += 32;
     --rde;
@@ -198,7 +214,7 @@ bool fatfs_read_rootdir()
 
 bool fatfs_seek(struct fatfs_handle *handle, uint32_t sector_nr)
 {
-  handle->cluster_nr = 7;
+  handle->cluster_nr = file_start_cluster;
   handle->pos = 0;
   while((sector_nr ^ handle->pos) >= blocks_per_cluster) {
     if (handle->cluster_nr & FAT_EOC)

@@ -482,7 +482,7 @@ static void service_cd_read()
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2])<<2;
   uint16_t blk = (packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
   blk -= 0x2e4c;
-  if (!fatfs_seek(&read_handle, blk<<2)) {
+  if (!fatfs_seek(&read_handle, (blk<<2)+0x565)) {
     DEBUG_PUTS("[SEEK ERROR]\n");
     service_finish_packet(0x04); /* Abort */
     return;
