@@ -250,3 +250,11 @@ bool fatfs_read_block(uint32_t cluster, uint16_t blk, uint8_t *buf)
   }
   return sd_read_block(data_start+(cluster<<cluster_shift)+blk, buf);
 }
+
+bool fatfs_read_header(void *buf, uint8_t size)
+{
+  if (!read_cluster_block(file_start_cluster, 0))
+    return false;
+  memcpy(buf, data_block, size);
+  return true;
+}

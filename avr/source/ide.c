@@ -5,6 +5,7 @@
 #include "hardware.h"
 #include "debug.h"
 #include "fatfs.h"
+#include "imgfile.h"
 
 #define DATA_MODE_IDLE   0
 #define DATA_MODE_PACKET 1
@@ -21,7 +22,6 @@ static uint8_t data_mode;
 static uint8_t service_mode;
 static uint8_t service_dma;
 static uint16_t service_sectors_left;
-static struct fatfs_handle read_handle;
 
 static union {
   uint8_t cmd;
@@ -437,7 +437,7 @@ static void service_cd_read_cont()
     service_finish_packet(0);
     return;
   }
-  if (!fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0])) {
+  if (!imgfile_read_next_sector()) {
     DEBUG_PUTS("READ ERROR]\n");
     service_finish_packet(0x04); /* Abort */
     return;
@@ -481,8 +481,7 @@ static void service_cd_read()
   DEBUG_PUTC(']');
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2])<<2;
   uint16_t blk = (packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
-  blk -= 0x2e4c;
-  if (!fatfs_seek(&read_handle, (blk<<2)+0x565)) {
+  if (!imgfile_seek(blk)) {
     DEBUG_PUTS("[SEEK ERROR]\n");
     service_finish_packet(0x04); /* Abort */
     return;

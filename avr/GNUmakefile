@@ -2,7 +2,7 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-SOURCES = main.c sdcard.c fatfs.c ide.c timer.c debug.c
+SOURCES = main.c sdcard.c fatfs.c imgfile.c ide.c timer.c debug.c
 ASOURCES = delay.S
 
 CC = avr-gcc

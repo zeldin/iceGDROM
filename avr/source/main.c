@@ -8,6 +8,7 @@
 #include "sdcard.h"
 #include "ide.h"
 #include "fatfs.h"
+#include "imgfile.h"
 #include "timer.h"
 
 void handle_sdcard()
@@ -17,7 +18,8 @@ void handle_sdcard()
 
   if (sd_init())
     if (fatfs_mount())
-      fatfs_read_rootdir();
+      if (fatfs_read_rootdir())
+	imgfile_init();
 
   while (bit_is_set(SD_CD_PIN, SD_CD_BIT))
     service_ide();
