@@ -26,4 +26,5 @@ extern struct imgheader imgheader;
 extern bool imgfile_init();
 extern bool imgfile_read_next_sector();
 extern bool imgfile_seek(uint16_t sec);
+extern bool imgfile_read_toc(uint8_t select);
 

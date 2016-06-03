@@ -20,6 +20,12 @@ bool imgfile_read_next_sector()
   return fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0]);
 }
 
+bool imgfile_read_toc(uint8_t select)
+{
+  return fatfs_seek(&read_handle, select+1) &&
+    fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0]);
+}
+
 bool imgfile_seek(uint16_t sec)
 {
   uint8_t i;
