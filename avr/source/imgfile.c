@@ -26,7 +26,7 @@ bool imgfile_read_toc(uint8_t select)
     fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0]);
 }
 
-bool imgfile_seek(uint16_t sec)
+bool imgfile_seek(uint32_t sec)
 {
   uint8_t i;
   uint32_t blk;

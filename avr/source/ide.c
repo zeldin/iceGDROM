@@ -450,7 +450,7 @@ static void service_cd_read()
 #endif
   DEBUG_PUTC(']');
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2])<<2;
-  uint16_t blk = (packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
+  uint32_t blk = (((uint32_t)packet.cd_read.start_addr[0])<<16)|(uint16_t)(packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
   if (!imgfile_seek(blk)) {
     DEBUG_PUTS("[SEEK ERROR]\n");
     service_finish_packet(0x04); /* Abort */
