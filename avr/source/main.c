@@ -7,6 +7,7 @@
 #include "delay.h"
 #include "sdcard.h"
 #include "ide.h"
+#include "cdda.h"
 #include "fatfs.h"
 #include "imgfile.h"
 #include "timer.h"
@@ -21,10 +22,13 @@ void handle_sdcard()
       if (fatfs_read_rootdir())
 	imgfile_init();
 
-  while (bit_is_set(SD_CD_PIN, SD_CD_BIT))
+  while (bit_is_set(SD_CD_PIN, SD_CD_BIT)) {
     service_ide();
+    service_cdda();
+  }
 
   DEBUG_PUTS("[Card extracted]\n");
+  cdda_stop();
 }
 
 int main()

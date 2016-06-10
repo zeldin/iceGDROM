@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "fatfs.h"
 #include "imgfile.h"
+#include "cdda.h"
 
 #define DATA_MODE_IDLE   0
 #define DATA_MODE_PACKET 1
@@ -258,6 +259,8 @@ static void process_packet()
 
   case 0x14: /* GET_TOC */
   case 0x15: /* REQ_SES */
+  case 0x20: /* CD_PLAY */
+  case 0x21: /* CD_SEEK */
   case 0x30: /* CD_READ */
     service_dma = (IDE_FEATURES & 1);
     service_mode = SERVICE_MODE_CMD;
@@ -459,8 +462,27 @@ static void service_cd_read()
   service_cd_read_cont();
 }
 
+static void service_cd_playseek()
+{
+  if (packet.cd_play.ptype == 1) {
+    uint32_t blk = (((uint32_t)packet.cd_play.start_point[0])<<16)|(uint16_t)(packet.cd_play.start_point[1]<<8)|packet.cd_play.start_point[2];
+    if (!imgfile_seek_cdda(blk)) {
+      DEBUG_PUTS("[SEEK ERROR]\n");
+      service_finish_packet(0x04); /* Abort */
+      return;
+    }
+  }
+  if (packet.cmd == 0x20) {
+    cdda_start();
+  } else {
+    cdda_stop();
+  }
+  service_finish_packet(0);
+}
+
 static void service_reset()
 {
+  cdda_stop();
 }
 
 static void service_cmd()
@@ -474,6 +496,10 @@ static void service_cmd()
     break;
   case 0x15: /* REQ_SES */
     service_req_ses();
+    break;
+  case 0x20: /* CD_PLAY */
+  case 0x21: /* CD_SEEK */
+    service_cd_playseek();
     break;
   case 0x30: /* CD_READ */
     service_cd_read();
