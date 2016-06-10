@@ -20,6 +20,9 @@ module top (
 	    inout PORTB7,
 
 	    output CDCLK,
+	    output SCK,
+	    output SDAT,
+	    output LRCK,
 
 	    input G_RST,
 	    inout D0,
@@ -57,10 +60,14 @@ module top (
 
    wire clkout, lock, lock_cdclk;
    wire [15:0] sram_a;
-   wire [7:0]  d_to_ide, d_from_ide;
-   wire sram_cs, sram_oe, sram_we, sram_wait;
+   wire [7:0]  d_to_ide_or_cdda, d_from_ide, d_from_cdda;
+   wire sram_cs, sram_oe, sram_we, sram_wait_ide, sram_wait_cdda;
    wire ide_irq;
    reg ide_irq_sync;
+   wire sram_cs_ide, sram_cs_cdda;
+
+   assign sram_cs_ide = sram_cs & ~sram_a[11];
+   assign sram_cs_cdda = sram_cs & sram_a[11];
 
    generate
       if(REFCLK_FREQ != CPU_FREQ*4) begin : use_clkgen
@@ -96,13 +103,23 @@ module top (
 	      .da({A2,A1,A0}), .cs1fx_(CS0n), .cs3fx_(CS1n), .dasp_(),
 	      .dior_(RDn), .diow_(WRn), .dmack_(DMACKn), .dmarq(DMARQ),
 	      .intrq(INTRQ), .iocs16_(), .iordy(IORDY), .pdiag_(),
-	      .reset_(G_RST), .csel(1'b0), .clk(clkout),
-	      .sram_a(sram_a), .sram_d_in(d_to_ide), .sram_d_out(d_from_ide),
-	      .sram_cs(sram_cs&~clkout_cpu&~clkout_cpu2), .sram_oe(sram_oe), .sram_we(sram_we),
-	      .sram_wait(sram_wait), .cpu_irq(ide_irq));
+	      .reset_(G_RST), .csel(1'b0), .clk(clkout), .sram_a(sram_a),
+	      .sram_d_in(d_to_ide_or_cdda), .sram_d_out(d_from_ide),
+	      .sram_cs(sram_cs_ide&~clkout_cpu&~clkout_cpu2), .sram_oe(sram_oe), .sram_we(sram_we),
+	      .sram_wait(sram_wait_ide), .cpu_irq(ide_irq));
+
+   cdda_interface #(.CLK_FREQUENCY(CPU_FREQ))
+     cdda_inst(.bck(SCK), .sd(SDAT), .lrck(LRCK),
+	       .clk(clkout_cpu), .rst(1'b0),
+	       .sram_a(sram_a),
+	       .sram_d_in(d_to_ide_or_cdda), .sram_d_out(d_from_cdda),
+	       .sram_cs(sram_cs_cdda), .sram_oe(sram_oe), .sram_we(sram_we),
+	       .sram_wait(sram_wait_cdda));
 
    avr #(.pm_size(4),
 	 .dm_size(2),
+	 .sram_address(16'hE000),
+	 .sram_size(4096),
 	 .impl_avr109(1),
 	 .CLK_FREQUENCY(CPU_FREQ),
 	 .AVR109_BAUD_RATE(115200),
@@ -118,8 +135,11 @@ module top (
 	      .portb({PORTB7, PORTB6, PORTB5, PORTB4, PORTB3, PORTB2, PORTB1, PORTB0}),
 	      .rxd(RXD), .txd(TXD),
 	      .m_scl(), .m_sda(), .s_scl(), .s_sda(),
-	      .sram_a(sram_a), .sram_d_in(d_from_ide), .sram_d_out(d_to_ide),
+	      .sram_a(sram_a),
+	      .sram_d_in(sram_a[11]? d_from_cdda : d_from_ide),
+	      .sram_d_out(d_to_ide_or_cdda),
 	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
-	      .sram_wait(sram_wait), .ext_irq1(ide_irq_sync));
+	      .sram_wait(sram_a[11]? sram_wait_cdda : sram_wait_ide),
+	      .ext_irq1(ide_irq_sync));
 
 endmodule // top

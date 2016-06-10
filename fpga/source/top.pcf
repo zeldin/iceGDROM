@@ -20,6 +20,9 @@ set_io PORTB5 N2
 set_io PORTB6 M2
 set_io PORTB7 M1
 set_io CDCLK  B1
+set_io SCK    C1
+set_io SDAT   D1
+set_io LRCK   D2
 
 set_io G_RST  T1
 set_io D8     R2

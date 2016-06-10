@@ -4,6 +4,7 @@ read_verilog top.v
 hierarchy -top top \
 	-libdir ide \
 	-libdir ide/tech/ice40 \
+	-libdir cdda \
 	-libdir tech/ice40 \
 	-libdir avr \
 	-libdir avr/tech/ice40 \
