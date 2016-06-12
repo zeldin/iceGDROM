@@ -22,7 +22,7 @@ void handle_sdcard()
       if (fatfs_read_rootdir())
 	imgfile_init();
 
-  while (bit_is_set(SD_CD_PIN, SD_CD_BIT)) {
+  while (bit_is_clear(SD_CD_PIN, SD_CD_BIT)) {
     service_ide();
     service_cdda();
   }
@@ -50,7 +50,7 @@ int main()
 
     service_ide();
 
-    if (bit_is_set(SD_CD_PIN, SD_CD_BIT))
+    if (bit_is_clear(SD_CD_PIN, SD_CD_BIT))
       handle_sdcard();
   }
 

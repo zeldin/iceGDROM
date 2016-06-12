@@ -7,7 +7,7 @@
 #include "timer.h"
 #include "sdcard.h"
 
-#define SPI_CS    PB5
+#define SPI_CS    PB6
 #define SPI_MISO  PB3
 #define SPI_MOSI  PB2
 #define SPI_SCK   PB1
