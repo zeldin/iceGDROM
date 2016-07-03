@@ -3,7 +3,7 @@
   (general
     (links 147)
     (no_connects 0)
-    (area 125.924999 43.924999 226.075001 134.075001)
+    (area 121.377857 32.65 242.5 134.229)
     (thickness 1.6)
     (drawings 52)
     (tracks 885)
@@ -375,7 +375,7 @@
   )
 
   (module Mounting_Holes:MountingHole_3.2mm_M3 (layer F.Cu) (tedit 57651694) (tstamp 576437C9)
-    (at 199.136 48.833)
+    (at 199.21 48.734)
     (descr "Mounting Hole 3.2mm, no annular, M3")
     (tags "mounting hole 3.2mm no annular m3")
     (fp_text reference REF** (at 0 -4.2) (layer F.SilkS) hide
@@ -390,7 +390,7 @@
   )
 
   (module Mounting_Holes:MountingHole_3.2mm_M3 (layer F.Cu) (tedit 5765169E) (tstamp 57643792)
-    (at 131.064 48.833)
+    (at 131.02 48.734)
     (descr "Mounting Hole 3.2mm, no annular, M3")
     (tags "mounting hole 3.2mm no annular m3")
     (fp_text reference REF** (at 0 -4.2) (layer F.SilkS) hide
@@ -405,7 +405,7 @@
   )
 
   (module Mounting_Holes:MountingHole_3.2mm_M3 (layer F.Cu) (tedit 57651682) (tstamp 5764366A)
-    (at 131.064 116.967)
+    (at 131.02 116.924)
     (descr "Mounting Hole 3.2mm, no annular, M3")
     (tags "mounting hole 3.2mm no annular m3")
     (fp_text reference REF** (at 0 -4.2) (layer F.SilkS) hide
@@ -1249,7 +1249,7 @@
   )
 
   (module Mounting_Holes:MountingHole_3.2mm_M3 (layer F.Cu) (tedit 5765168C) (tstamp 5764348C)
-    (at 199.136 116.967)
+    (at 199.21 116.924)
     (descr "Mounting Hole 3.2mm, no annular, M3")
     (tags "mounting hole 3.2mm no annular m3")
     (fp_text reference REF** (at 0 -4.2) (layer F.SilkS) hide
@@ -1667,7 +1667,7 @@
   (gr_text "marcus_c 2016" (at 213.4 47.6) (layer F.Cu)
     (effects (font (size 1.5 1.5) (thickness 0.3)))
   )
-  (gr_text v2.0 (at 130.2 131.2) (layer F.SilkS)
+  (gr_text v2.1 (at 130.2 131.2) (layer F.SilkS)
     (effects (font (size 1.5 1.5) (thickness 0.3)))
   )
   (gr_text PWR (at 130 90.6 270) (layer F.SilkS)
