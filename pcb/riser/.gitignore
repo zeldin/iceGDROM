@@ -1,0 +1,7 @@
+/fp-lib-table
+*.bak
+*-bak
+*-cache.lib
+*.net
+*.bck
+/gerber/

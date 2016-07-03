@@ -1,0 +1,7 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP +3V3_FPGA
+K POWER, PWR
+$ENDCMP
+#
+#End Doc Library
