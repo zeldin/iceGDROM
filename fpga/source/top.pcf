@@ -50,5 +50,5 @@ set_io INTRQ  R4
 set_io CS0n   R2
 set_io CS1n   T1
 set_io A0     R3
-set_io A2     T3
-set_io A1     T2
+set_io A1     T3
+set_io A2     T2
