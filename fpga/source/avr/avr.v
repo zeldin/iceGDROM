@@ -464,7 +464,7 @@ tri_buf tri_buf_portb_inst[7:0](
 	       .pin (portb)
 	       );
 
-assign spi_slave_cs_n = portb_pinx[0];
+assign spi_slave_cs_n = 1'b1; // portb_pinx[0];
 assign scki = portb_pinx[1];
 assign mosii = portb_pinx[2];
 assign misoi = portb_pinx[3];
