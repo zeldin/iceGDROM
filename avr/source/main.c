@@ -20,7 +20,9 @@ void handle_sdcard()
   if (sd_init())
     if (fatfs_mount())
       if (fatfs_read_rootdir())
-	imgfile_init();
+	if (imgfile_init()) {
+	  set_disk_type(imgheader.disk_type);
+	}
 
   while (bit_is_clear(SD_CD_PIN, SD_CD_BIT)) {
     service_ide();
@@ -29,6 +31,7 @@ void handle_sdcard()
 
   DEBUG_PUTS("[Card extracted]\n");
   cdda_stop();
+  set_disk_type(0xff);
 }
 
 int main()

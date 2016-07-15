@@ -23,6 +23,7 @@ static uint8_t data_mode;
 static uint8_t service_mode;
 static uint8_t service_dma;
 static uint16_t service_sectors_left;
+static uint8_t disk_type = 0xff;
 
 static union {
   uint8_t cmd;
@@ -272,15 +273,19 @@ static void process_packet()
   }
 }
 
+static void set_secnr()
+{
+  if (disk_type == 0xff)
+    IDE_SECNR = 0x06;
+  else
+    IDE_SECNR = disk_type | 0x02;
+}
+
 static void reset_irq()
 {
   DEBUG_PUTS("[RST]\n");
   data_mode = DATA_MODE_IDLE;
-#ifdef AUDIOCD
-  IDE_SECNR = 0x02;
-#else
-  IDE_SECNR = 0x22;
-#endif
+  set_secnr();
   IDE_DEVCON = 0x01; /* Negate INTRQ */
   service_mode = SERVICE_MODE_RESET;
 }
@@ -547,4 +552,10 @@ void service_ide()
     service_data();
     break;
   }
+}
+
+void set_disk_type(uint8_t type)
+{
+  disk_type = type;
+  set_secnr();
 }
