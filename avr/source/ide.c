@@ -238,9 +238,11 @@ static void process_packet()
 {
   memcpy(&packet, IDE_DATA_BUFFER, 12);
   IDE_IOCONTROL = 0x00;
+#ifdef IDEDEBUG
   DEBUG_PUTS("[PKT ");
   DEBUG_PUTX(packet.cmd);
   DEBUG_PUTS("]\n");
+#endif
   switch (packet.cmd) {
   case 0x71:
     do_cmd71();
@@ -284,7 +286,9 @@ static void set_secnr()
 
 static void reset_irq()
 {
+#ifdef IDEDEBUG
   DEBUG_PUTS("[RST]\n");
+#endif
   data_mode = DATA_MODE_IDLE;
   set_secnr();
   IDE_DEVCON = 0x01; /* Negate INTRQ */
@@ -293,9 +297,11 @@ static void reset_irq()
 
 static void cmd_irq()
 {
+#ifdef IDEDEBUG
   DEBUG_PUTS("[CMD ");
   DEBUG_PUTX(IDE_COMMAND);
   DEBUG_PUTC(']');
+#endif
   data_mode = DATA_MODE_IDLE;
   IDE_IOCONTROL = 0x00;
   switch (IDE_COMMAND) {
@@ -313,13 +319,17 @@ static void cmd_irq()
     if (IDE_FEATURES == 0x03) {
       uint8_t mode = IDE_SECCNT;
       if ((mode & 0xf8) == 0x08) {
+#ifdef IDEDEBUG
 	DEBUG_PUTS("[PIO MODE ");
 	DEBUG_PUTX(mode & 0x07);
 	DEBUG_PUTS("]\n");
+#endif
       } else if ((mode & 0xf8) == 0x20) {
+#ifdef IDEDEBUG
 	DEBUG_PUTS("[DMA MODE ");
 	DEBUG_PUTX(mode & 0x07);
 	DEBUG_PUTS("]\n");
+#endif
       }
       IDE_ERROR = 0x00;
       IDE_STATUS = 0x50;
@@ -327,7 +337,9 @@ static void cmd_irq()
     }
     /* Fallthrough to abort */
   default:
+#ifdef IDEDEBUG
     DEBUG_PUTC('\n');
+#endif
     /* Unknown command */
     IDE_ERROR = 0x04;  /* Error = Abort */
     IDE_STATUS = 0x51; /* Error, not busy, assert INTRQ */
@@ -347,16 +359,20 @@ static void data_irq()
     break;
   case DATA_MODE_LAST:
     data_mode = DATA_MODE_IDLE;
+#ifdef IDEDEBUG
     DEBUG_PUTS("[END]");
     DEBUG_PUTX(IDE_IOPOSITION);
     DEBUG_PUTC('\n');
+#endif
     finish_packet_ok();
     break;
   case DATA_MODE_CONT:
     service_mode = SERVICE_MODE_DATA;
     break;
   default:
+#ifdef IDEDEBUG
     DEBUG_PUTS("[*DATA]\n");
+#endif
     IDE_ALT_STATUS = 0x50;
   }
 }
@@ -365,9 +381,11 @@ ISR(INT1_vect)
 {
   uint8_t devcon = IDE_DEVCON & 0x3c;
   IDE_DEVCON = devcon;
+#ifdef IDEDEBUG
   DEBUG_PUTS("[IRQ ");
   DEBUG_PUTX(devcon);
   DEBUG_PUTC(']');
+#endif
   if (devcon & 0x0c)
     reset_irq();
   else if (devcon & 0x10)
@@ -406,28 +424,36 @@ static void service_req_ses()
 
 static void service_cd_read_cont()
 {
+#ifdef IDEDEBUG
   if (service_dma) {
     DEBUG_PUTS("[DMA READ CONT][");
   } else {
     DEBUG_PUTS("[PIO READ CONT][");
   }
+#endif
   if (!service_sectors_left) {
+#ifdef IDEDEBUG
     DEBUG_PUTS("COMPLETE]\n");
+#endif
     service_finish_packet(0);
     return;
   }
   if (!imgfile_read_next_sector()) {
+#ifdef IDEDEBUG
     DEBUG_PUTS("READ ERROR]\n");
+#endif
     service_finish_packet(0x04); /* Abort */
     return;
   }
   --service_sectors_left;
+#ifdef IDEDEBUG
   IDE_IOCONTROL = 0x01;
   uint8_t i;
   for(i=0; i<16; i++)
     DEBUG_PUTX(IDE_DATA_BUFFER[i]);
   IDE_IOCONTROL = 0x00;
   DEBUG_PUTS("]\n");
+#endif
   if (service_dma) {
     service_packet_data_dma_full();
   } else if(service_sectors_left) {
@@ -439,6 +465,7 @@ static void service_cd_read_cont()
 
 static void service_cd_read()
 {
+#ifdef IDEDEBUG
   if (service_dma) {
     DEBUG_PUTS("[DMA READ ");
   } else {
@@ -458,10 +485,13 @@ static void service_cd_read()
   DEBUG_PUTS("}\n");
 #endif
   DEBUG_PUTC(']');
+#endif
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2])<<2;
   uint32_t blk = (((uint32_t)packet.cd_read.start_addr[0])<<16)|(uint16_t)(packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
   if (!imgfile_seek(blk)) {
+#ifdef IDEDEBUG
     DEBUG_PUTS("[SEEK ERROR]\n");
+#endif
     service_finish_packet(0x04); /* Abort */
     return;
   }
@@ -473,7 +503,9 @@ static void service_cd_playseek()
   if (packet.cd_play.ptype == 1) {
     uint32_t blk = (((uint32_t)packet.cd_play.start_point[0])<<16)|(uint16_t)(packet.cd_play.start_point[1]<<8)|packet.cd_play.start_point[2];
     if (!imgfile_seek_cdda(blk)) {
+#ifdef IDEDEBUG
       DEBUG_PUTS("[SEEK ERROR]\n");
+#endif
       service_finish_packet(0x04); /* Abort */
       return;
     }
@@ -493,9 +525,11 @@ static void service_reset()
 
 static void service_cmd()
 {
+#ifdef IDEDEBUG
   DEBUG_PUTS("[SVC ");
   DEBUG_PUTX(packet.cmd);
   DEBUG_PUTS("]\n");
+#endif
   switch(packet.cmd) {
   case 0x14: /* GET_TOC */
     service_get_toc();
@@ -518,9 +552,11 @@ static void service_cmd()
 
 static void service_data()
 {
+#ifdef IDEDEBUG
   DEBUG_PUTS("[SVC ");
   DEBUG_PUTX(packet.cmd);
   DEBUG_PUTS("]\n");
+#endif
   switch(packet.cmd) {
     case 0x30: /* CD_READ */
       service_cd_read_cont();
