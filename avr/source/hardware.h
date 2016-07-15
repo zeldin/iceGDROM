@@ -26,12 +26,12 @@
 #define IDE_DRVHEAD    _MMIO_BYTE(0xe00e)
 #define IDE_COMMAND    _MMIO_BYTE(0xe00f)
 
-#define IDE_DATA_BUFFER  ((volatile uint8_t *)0xe200)
+#define IDE_DATA_BUFFER  ((uint8_t *)0xe200)
 
 #define CDDA_CONTROL   _MMIO_BYTE(0xe800)
 #define CDDA_READPOS   _MMIO_BYTE(0xe801)
 #define CDDA_LIMIT     _MMIO_BYTE(0xe802)
 #define CDDA_SCRATCHPAD _MMIO_BYTE(0xe803)
 
-#define CDDA_DATA_BUFFER ((volatile uint8_t *)0xec00)
+#define CDDA_DATA_BUFFER ((uint8_t *)0xec00)
 
