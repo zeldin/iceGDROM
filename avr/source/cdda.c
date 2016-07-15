@@ -5,6 +5,7 @@
 #include "cdda.h"
 #include "hardware.h"
 #include "timer.h"
+#include "imgfile.h"
 
 static bool cdda_active = false;
 static uint8_t cdda_next_index;
