@@ -41,8 +41,8 @@ module cdda_interface (
    assign cpu_writes_to_buffer = sram_cs & sram_we & sram_a[10];
    assign cpu_writes_left = cpu_writes_to_buffer & ~sram_a[1];
    assign cpu_writes_right = cpu_writes_to_buffer & sram_a[1];
-   assign cpu_writes_low = sram_a[0];
-   assign cpu_writes_high  = ~cpu_writes_low;
+   assign cpu_writes_high = sram_a[0];
+   assign cpu_writes_low  = ~cpu_writes_high;
 
    digital_sound_output #(.CLK_FREQUENCY(CLK_FREQUENCY))
    dso_inst(.clk(clk), .rst(rst), .enabled(dso_enabled_q),
