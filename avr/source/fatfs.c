@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include "sdcard.h"
 #include "fatfs.h"
 #include "debug.h"
@@ -17,6 +18,8 @@ static uint32_t file_start_cluster;
 
 #define FAT_EOC   0x80000000
 #define FAT_ERROR 0x40000000
+
+char filename[11] = "DISC0000GI0";
 
 static void reset_cache()
 {
@@ -179,7 +182,7 @@ bool fatfs_read_rootdir()
       for(i=0; i<11; i++)
 	DEBUG_PUTC(p[i]);
       DEBUG_PUTC('\n');
-      if (!memcmp_P(p, PSTR("DISC0000GI0"), 11)) {
+      if (!memcmp(p, filename, 11)) {
 	DEBUG_PUTS("Found target at ");
 	if (fat32) {
 	  DEBUG_PUTX(p[21]);
@@ -257,4 +260,22 @@ bool fatfs_read_header(void *buf, uint8_t size)
     return false;
   memcpy(buf, data_block, size);
   return true;
+}
+
+void fatfs_reset_filename()
+{
+  memset(filename+4, '0', 4);
+}
+
+void fatfs_next_filename()
+{
+  char *p = filename+8;
+  while (*--p <= '9') {
+    if (*p == '9') {
+      *p = '0';
+    } else {
+      (*p)++;
+      break;
+    }
+  }
 }

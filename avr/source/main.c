@@ -12,6 +12,14 @@
 #include "imgfile.h"
 #include "timer.h"
 
+static bool find_imgfile()
+{
+  if (fatfs_read_rootdir())
+    return true;
+  fatfs_reset_filename();
+  return fatfs_read_rootdir();
+}
+
 void handle_sdcard()
 {
 
@@ -19,9 +27,12 @@ void handle_sdcard()
 
   if (sd_init())
     if (fatfs_mount())
-      if (fatfs_read_rootdir())
+      if (find_imgfile())
 	if (imgfile_init()) {
 	  set_disk_type(imgheader.disk_type);
+	  fatfs_next_filename();
+	} else {
+	  fatfs_reset_filename();
 	}
 
   while (bit_is_clear(SD_CD_PIN, SD_CD_BIT)) {
