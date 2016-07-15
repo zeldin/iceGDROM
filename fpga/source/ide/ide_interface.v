@@ -294,6 +294,7 @@ module ide_interface (
 	      if (sram_d_in[5])
 		data_d = 1'b0;
 	   end
+	   4'b1011: secnr_d = sram_d_in;
 	 endcase
       end
       if (bsy) begin
@@ -301,7 +302,6 @@ module ide_interface (
 	    case (sram_a[3:0])
 	      4'b1001: features_d = sram_d_in;
 	      4'b1010: seccnt_d = sram_d_in;
-	      4'b1011: secnr_d = sram_d_in;
 	      4'b1100: cyllo_d = sram_d_in;
 	      4'b1101: cylhi_d = sram_d_in;
 	      4'b1110: drvhead_d = sram_d_in;
@@ -311,7 +311,6 @@ module ide_interface (
 	 case ({bus_cs1,bus_cs3,bus_addr})
 	   5'b01001: features_d = dd_in[7:0];
 	   5'b01010: seccnt_d = dd_in[7:0];
-	   5'b01011: secnr_d = dd_in[7:0];
 	   5'b01100: cyllo_d = dd_in[7:0];
 	   5'b01101: cylhi_d = dd_in[7:0];
 	   5'b01110: drvhead_d = dd_in[7:0];
