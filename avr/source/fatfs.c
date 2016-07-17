@@ -234,8 +234,10 @@ bool fatfs_read_next_sector(struct fatfs_handle *handle, uint8_t *buf)
   if (handle->cluster_nr & FAT_EOC)
     return false;
   uint8_t blk = (handle->pos&0xff)&(blocks_per_cluster-1);
-  if (!sd_read_block(data_start+(handle->cluster_nr<<cluster_shift)+blk, buf))
-    return false;
+  if (buf) {
+    if (!sd_read_block(data_start+(handle->cluster_nr<<cluster_shift)+blk, buf))
+      return false;
+  }
   if (++blk == blocks_per_cluster)
     handle->cluster_nr = get_fat_entry(handle->cluster_nr);
   handle->pos++;

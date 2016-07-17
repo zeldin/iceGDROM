@@ -120,64 +120,69 @@ static void finish_packet_ok()
   finish_packet(0);
 }
 
-static void packet_data_last(uint16_t cnt) __attribute__((noinline));
-static void packet_data_last(uint16_t cnt)
+static void packet_data_last(uint8_t cnt, uint8_t offs) __attribute__((noinline));
+static void packet_data_last(uint8_t cnt, uint8_t offs)
 {
 
   IDE_SECCNT = 0x02; /* C/D=0 I/O=1 REL=0 */
-  IDE_CYLHI = cnt>>8;
-  IDE_CYLLO = cnt&0xff;
+  IDE_CYLHI = (cnt? (cnt>>7) : 2);
+  IDE_CYLLO = (cnt<<1)&0xff;
 
   data_mode = DATA_MODE_LAST;
   IDE_IOCONTROL = 0x02; /* PIO out */
-  IDE_IOPOSITION = 0x00;
-  IDE_IOTARGET = (cnt>>1)-1;
+  IDE_IOPOSITION = offs;
+  IDE_IOTARGET = cnt-1+offs;
   IDE_STATUS = 0x58; /* DRQ = 1 BSY = 0 */
 }
 
-static void packet_data_dma(uint16_t cnt) __attribute__((noinline));
-static void packet_data_dma(uint16_t cnt)
+static void packet_data_last0(uint8_t cnt)
+{
+  packet_data_last(cnt, 0);
+}
+
+static void packet_data_dma(uint8_t cnt, uint8_t offs) __attribute__((noinline));
+static void packet_data_dma(uint8_t cnt, uint8_t offs)
 {
 
   IDE_SECCNT = 0x02; /* C/D=0 I/O=1 REL=0 */
-  IDE_CYLHI = cnt>>8;
-  IDE_CYLLO = cnt&0xff;
+  IDE_CYLHI = (cnt? (cnt>>7) : 2);
+  IDE_CYLLO = (cnt<<1)&0xff;
 
   data_mode = DATA_MODE_CONT;
-  IDE_IOPOSITION = 0x00;
-  IDE_IOTARGET = (cnt>>1)-1;
+  IDE_IOPOSITION = offs;
+  IDE_IOTARGET = cnt-1+offs;
   IDE_IOCONTROL = 0x04; /* DMA out */
 }
 
-static void service_packet_data_last(uint16_t cnt)
+static void service_packet_data_last(uint8_t cnt, uint8_t offs)
 {
   cli();
   if (service_mode == SERVICE_MODE_IDLE)
-    packet_data_last(cnt);
+    packet_data_last(cnt, offs);
   sei();
 }
 
-static void service_packet_data_cont(uint16_t cnt)
+static void service_packet_data_last0(uint8_t cnt)
+{
+  service_packet_data_last(cnt, 0);
+}
+
+static void service_packet_data_cont(uint8_t cnt, uint8_t offs)
 {
   cli();
   if (service_mode == SERVICE_MODE_IDLE) {
-    packet_data_last(cnt);
+    packet_data_last(cnt, offs);
     data_mode = DATA_MODE_CONT;
   }
   sei();
 }
 
-static void service_packet_data_dma(uint16_t cnt)
+static void service_packet_data_dma(uint8_t cnt, uint8_t offs)
 {
   cli();
   if (service_mode == SERVICE_MODE_IDLE)
-    packet_data_dma(cnt);
+    packet_data_dma(cnt, offs);
   sei();
-}
-
-static void service_packet_data_dma_full()
-{
-  service_packet_data_dma(512);
 }
 
 static const uint8_t gdrom_version[] PROGMEM = "Rev 5.07";
@@ -193,10 +198,10 @@ static void do_req_mode()
   uint8_t len = packet.req_mode.alloc_len;
   if (addr == 18 && len == 8) {
     memcpy_P(&IDE_DATA_BUFFER[0], gdrom_version, sizeof(gdrom_version));
-    packet_data_last(8);
+    packet_data_last0(8/2);
   } else if(addr == 0 && len == 10) {
     memset(IDE_DATA_BUFFER, 0, 10); /* FIXME */
-    packet_data_last(10);
+    packet_data_last0(10/2);
   } else
     finish_packet(0x50);
 }
@@ -223,7 +228,7 @@ static void do_cmd71()
 {
   memcpy_P(&IDE_DATA_BUFFER[0], cmd71_reply, sizeof(cmd71_reply));
 
-  packet_data_last(sizeof(cmd71_reply));
+  packet_data_last0(sizeof(cmd71_reply)/2);
 }
 
 static void do_req_error()
@@ -231,7 +236,7 @@ static void do_req_error()
   uint8_t i;
   memset(IDE_DATA_BUFFER, 0, 10); /* FIXME */
 
-  packet_data_last(10);
+  packet_data_last0(10/2);
 }
 
 static void process_packet()
@@ -405,7 +410,7 @@ static void service_get_toc()
     service_finish_packet(0x04); /* Abort */
     return;
   }
-  service_packet_data_last(408);
+  service_packet_data_last0(408/2);
 }
 
 static void service_req_ses()
@@ -419,7 +424,7 @@ static void service_req_ses()
   IDE_DATA_BUFFER[1] = 0;
   memcpy(&IDE_DATA_BUFFER[2], imgheader.sessions[s], sizeof(imgheader.sessions[s]));
 
-  service_packet_data_last(6);
+  service_packet_data_last0(6/2);
 }
 
 static void service_cd_read_cont()
@@ -445,21 +450,26 @@ static void service_cd_read_cont()
     service_finish_packet(0x04); /* Abort */
     return;
   }
-  --service_sectors_left;
+  uint8_t offs = imgfile_data_offs;
+  uint8_t len = imgfile_data_len;
+  if (imgfile_sector_complete())
+    --service_sectors_left;
 #ifdef IDEDEBUG
   IDE_IOCONTROL = 0x01;
-  uint8_t i;
-  for(i=0; i<16; i++)
-    DEBUG_PUTX(IDE_DATA_BUFFER[i]);
+  uint8_t i = 0;
+  do {
+    DEBUG_PUTX(IDE_DATA_BUFFER[((uint16_t)(i+offs))*2]);
+    DEBUG_PUTX(IDE_DATA_BUFFER[((uint16_t)(i+offs))*2+1]);
+  } while(((uint8_t)(++i)) != len && i<16);
   IDE_IOCONTROL = 0x00;
   DEBUG_PUTS("]\n");
 #endif
   if (service_dma) {
-    service_packet_data_dma_full();
+    service_packet_data_dma(len, offs);
   } else if(service_sectors_left) {
-    service_packet_data_cont(512);
+    service_packet_data_cont(len, offs);
   } else {
-    service_packet_data_last(512);
+    service_packet_data_last(len, offs);
   }
 }
 
@@ -486,9 +496,9 @@ static void service_cd_read()
 #endif
   DEBUG_PUTC(']');
 #endif
-  service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2])<<2;
+  service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2]);
   uint32_t blk = (((uint32_t)packet.cd_read.start_addr[0])<<16)|(uint16_t)(packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
-  if (!imgfile_seek(blk)) {
+  if (!imgfile_seek(blk, packet.cd_read.flags)) {
 #ifdef IDEDEBUG
     DEBUG_PUTS("[SEEK ERROR]\n");
 #endif
