@@ -81,16 +81,14 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
   uint8_t i;
   uint32_t blk;
   uint8_t rmode = 0xff;
+  uint8_t secoffs = 0;
   for(i=0; i<imgheader.num_regions; i++) {
     uint32_t start = imgheader.regions[i].start_and_type & 0xffffff;
     if (sec >= start) {
       rmode = imgheader.regions[i].start_and_type >> 24;
-      blk = imgheader.regions[i].fileoffs;
-      if (!(mode & 0x10))
-	blk += (sec - start)<<2;
-      else {
-	blk += ((sec - start)*147)>>5;
-      }
+      blk = (sec-start)*147;
+      secoffs = (((uint8_t)blk)&31)<<3;
+      blk = (blk>>5)+imgheader.regions[i].fileoffs;
     } else {
       if (!i)
 	return false;
@@ -141,11 +139,7 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     imgfile_sector_size = 2352/2;
     imgfile_sector_size -= skip_before;
     imgfile_sector_size -= skip_after;
-
-    skip_before = 0; /* ... */
-    skip_after = 0;
-
-    imgfile_data_offs = 0; /* ... */
+    imgfile_data_offs = secoffs;
     imgfile_skip_before = skip_before;
     imgfile_skip_after = skip_after;
     imgfile_need_to_read = true;
