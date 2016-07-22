@@ -15,42 +15,67 @@
 #define INIT_TIMEOUT_CS 200
 #define READ_TIMEOUT_CS 30
 
+#define USE_SDCARD_MODULE
+
 static bool is_hc;
 
 static __inline void sd_spi_enable_init()
 {
   PORTB = _BV(SPI_CS);
   DDRB = _BV(SPI_CS)|_BV(SPI_MOSI)|_BV(SPI_SCK);
+#ifdef USE_SDCARD_MODULE
+  SDCARD_CONTROL = 7;
+  SDCARD_DIVIDER = 135; /* 33.9MHz/136 = 249kHz */
+#else
   SPSR &= ~_BV(SPI2X);
   SPCR = _BV(SPE)|_BV(MSTR)|_BV(SPR1); /* 16.93MHz/64 = 264.6kHz */
+#endif
   PORTB |= _BV(SPI_MOSI);
 }
 
 static __inline void sd_spi_enable()
 {
+#ifdef USE_SDCARD_MODULE
+  SDCARD_CONTROL = 7;
+  SDCARD_DIVIDER = 2; /* 33.9MHz/3 = 11.3MHz */
+#else
   SPSR &= ~_BV(SPI2X);
  /* SPSR |= _BV(SPI2X); */
   SPCR = _BV(SPE)|_BV(MSTR); /* 16.93MHz/4 = 4.23MHz */
+#endif
   PORTB |= _BV(SPI_MOSI);
 }
 
 static __inline void sd_spi_disable()
 {
   PORTB &= ~_BV(SPI_MOSI);
+#ifdef USE_SDCARD_MODULE
+  SDCARD_CONTROL = 0;
+#else
   SPCR = 0;
+#endif
 }
 
 static void spi_send_byte(uint8_t b)
 {
+#ifdef USE_SDCARD_MODULE
+  SDCARD_DATA = b;
+  loop_until_bit_is_set(SDCARD_CONTROL, 7);
+#else
   (void)SPSR;
   SPDR = b;
   loop_until_bit_is_set(SPSR, SPIF);
+#endif
 }
 
 static uint8_t spi_recv_byte()
 {
   spi_send_byte(0xff);
+#ifdef USE_SDCARD_MODULE
+  return SDCARD_DATA;
+#else
   return SPDR;
+#endif
 }
 
 static uint8_t sd_send_byte_crc7(uint8_t b, uint8_t crc) __attribute__((noinline));
@@ -84,6 +109,11 @@ static uint8_t sd_send_cmd_param32(uint8_t cmd, uint32_t param)
   if (cmd == 12)
     spi_send_byte(0xff);
 
+#ifdef USE_SDCARD_MODULE
+  SDCARD_CONTROL = 31;
+  r1 = spi_recv_byte();
+  SDCARD_CONTROL = 7;
+#else
   SPCR &= ~_BV(SPE);
   if (!(SPCR & _BV(SPR1))) {
     /* Fast path */
@@ -102,6 +132,7 @@ static uint8_t sd_send_cmd_param32(uint8_t cmd, uint32_t param)
   }
   SPCR |= _BV(SPE);
   r1 = spi_recv_byte();
+#endif
 
   return r1;
 }

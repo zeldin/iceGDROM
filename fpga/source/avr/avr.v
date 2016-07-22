@@ -10,6 +10,11 @@ module avr (
 	    // PORTB
 	    inout[7:0]                    portb,
 
+	    // SDCARD
+	    input                         sdcard_sck,
+	    input                         sdcard_mosi,
+	    output                        sdcard_miso,
+
 	    // UART related
 	    input                         rxd,
 	    output wire                   txd,  
@@ -42,6 +47,7 @@ parameter sram_address = 16'hE000;
 parameter sram_size    = 1024;
 parameter pm_init_low = "";
 parameter pm_init_high = "";
+parameter sdcard_spi = 0;
 
 localparam LP_DM_START_ADR = 16'h0060; /*16'h0100  M103/M128*/
 localparam irqs_width = 23;
@@ -334,7 +340,7 @@ assign dm_dout[7:0] = avr_interconnect_ramdout[7:0];
 assign dm_we        = avr_interconnect_ramwe&~dm_adr[15];
 
 
-peripherals #(.irqs_width(irqs_width))
+peripherals #(.irqs_width(irqs_width), .impl_spi(!sdcard_spi))
    peripherals_inst( .ireset         (core_ireset),
                      .cp2	     (cp2),
 
@@ -452,6 +458,18 @@ tri_buf tri_buf_porta_inst[7:0](
 	       .pin (porta)
 	       );
 
+generate
+if(sdcard_spi) begin : spi_is_sdcard
+tri_buf tri_buf_portb_inst[7:0](
+	       .out ({portb_portx[7:3],
+		      {sdcard_mosi, sdcard_sck},
+		      portb_portx[0]}),
+	       .in  (portb_pinx),
+	       .en  ({portb_ddrx[7:4], 1'b0, portb_ddrx[2:0]}),
+	       .pin (portb)
+	       );
+end
+else begin : spi_is_avr
 tri_buf tri_buf_portb_inst[7:0](
 	       .out ({portb_portx[7:4],
 		      ((spe & (~spimaster))? misoo : portb_portx[3]),
@@ -463,11 +481,14 @@ tri_buf tri_buf_portb_inst[7:0](
 		      ((spe & (~spimaster))? 3'b000 : portb_ddrx[2:0])}),
 	       .pin (portb)
 	       );
+end
+endgenerate
 
 assign spi_slave_cs_n = 1'b1; // portb_pinx[0];
 assign scki = portb_pinx[1];
 assign mosii = portb_pinx[2];
 assign misoi = portb_pinx[3];
+assign sdcard_miso = portb_pinx[3];
 
 por_rst_gen #(.tech(c_tech_generic)) por_rst_gen_inst(
    .clk       (clk),

@@ -5,6 +5,7 @@ hierarchy -top top \
 	-libdir ide \
 	-libdir ide/tech/ice40 \
 	-libdir cdda \
+	-libdir sdcard \
 	-libdir tech/ice40 \
 	-libdir avr \
 	-libdir avr/tech/ice40 \

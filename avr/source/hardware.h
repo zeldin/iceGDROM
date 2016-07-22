@@ -28,6 +28,10 @@
 
 #define IDE_DATA_BUFFER  ((uint8_t *)0xe200)
 
+#define SDCARD_CONTROL _MMIO_BYTE(0xe400)
+#define SDCARD_DATA    _MMIO_BYTE(0xe401)
+#define SDCARD_DIVIDER _MMIO_BYTE(0xe402)
+
 #define CDDA_CONTROL   _MMIO_BYTE(0xe800)
 #define CDDA_READPOS   _MMIO_BYTE(0xe801)
 #define CDDA_LIMIT     _MMIO_BYTE(0xe802)

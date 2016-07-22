@@ -402,6 +402,8 @@ assign scko = 1'b0;
 assign spe = 1'b0;
 assign spimaster = 1'b0;
 
+assign irqlines[16] = 1'b0;
+
 end // spi_is_not_implemented
 
 endgenerate
