@@ -22,7 +22,10 @@ module ide_interface (
 		      input       sram_oe,
 		      input       sram_we,
 		      output      sram_wait,
-		      output      cpu_irq
+		      output      cpu_irq,
+		      input[7:0]  sdcard_dma_data,
+		      input[8:0]  sdcard_dma_addr,
+		      input       sdcard_dma_strobe
 		      );
 
    parameter drv = 1'b0;
@@ -149,10 +152,12 @@ module ide_interface (
    wire      drv_selected;
    wire      pio_mode;
    wire      dma_mode;
+   wire      sdcard_dma_mode;
    assign    bsy = status_q[7];
    assign drv_selected = (drvhead_q[4] == drv);
    assign pio_mode = iocontrol_q[1];
    assign dma_mode = iocontrol_q[2];
+   assign sdcard_dma_mode = iocontrol_q[3];
    assign cpu_irq = (srst_q | hrst_q | cmd_q | data_q) & ~rst;
 
    assign intrq_enabled = (~nien_q) & drv_selected;
@@ -382,6 +387,14 @@ module ide_interface (
 	 buffer_write_data = dd_in;
 
 	 buffer_read_addr = sram_a[8:1];
+       end else if(sdcard_dma_mode) begin
+	 /* Bus reads, SDCARD writes */
+	 buffer_write_hi = sdcard_dma_strobe & sdcard_dma_addr[0];
+	 buffer_write_lo = sdcard_dma_strobe & ~sdcard_dma_addr[0];
+	 buffer_write_addr = sdcard_dma_addr[8:1];
+	 buffer_write_data = {sdcard_dma_data, sdcard_dma_data};
+
+	 buffer_read_addr = iopos_q;
        end else begin
 	 /* Bus reads, AVR writes */
 	 buffer_write_hi = avr_data_write & sram_a[0];

@@ -242,6 +242,33 @@ bool sd_init()
   return false;
 }
 
+#ifdef USE_SDCARD_MODULE
+static void __inline sd_xfer_block_sw(uint8_t *ptr)
+{
+  uint16_t cnt = 512;
+  do {
+    *ptr++ = spi_recv_byte();
+  } while(--cnt);
+}
+
+static void sd_xfer_block_hw()
+{
+  SDCARD_CONTROL = 0x40|7;
+  loop_until_bit_is_clear(SDCARD_CONTROL, 6);
+}
+
+static void __inline sd_xfer_block(uint8_t *ptr)
+{
+  if (((((uint16_t)ptr)>>8)&0xfe) == (((uint16_t)IDE_DATA_BUFFER)>>8)) {
+    IDE_IOCONTROL = 0x08;
+    sd_xfer_block_hw();
+    IDE_IOCONTROL = 0x00;
+  } else {
+    sd_xfer_block_sw(ptr);
+  }
+}
+#endif
+
 bool sd_read_block(uint32_t blk, uint8_t *ptr)
 {
   if (!is_hc)
@@ -258,6 +285,12 @@ bool sd_read_block(uint32_t blk, uint8_t *ptr)
   if (r != 0xfe) {
     goto fail;
   }
+#ifdef USE_SDCARD_MODULE
+  sd_xfer_block(ptr);
+  /* Discard CRC */
+  spi_recv_byte();
+  spi_recv_byte();
+#else
   uint16_t cnt = 512;
   do {
     *ptr++ = spi_recv_byte();
@@ -265,6 +298,7 @@ bool sd_read_block(uint32_t blk, uint8_t *ptr)
   /* Discard CRC */
   spi_recv_byte();
   spi_recv_byte();
+#endif
   PORTB |= _BV(SPI_CS);
   sd_spi_disable();
   return true;
