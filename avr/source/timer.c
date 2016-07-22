@@ -13,7 +13,7 @@ ISR(TIMER0_COMP_vect)
 
 void timer_init()
 {
-  OCR0 = 220;
+  OCR0 = 165;
   TCCR0 = _BV(WGM01)|_BV(CS02)|_BV(CS01)|_BV(CS00);
   TIMSK |= _BV(OCIE0);
 }
