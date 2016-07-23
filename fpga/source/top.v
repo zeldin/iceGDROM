@@ -69,6 +69,7 @@ module top (
    wire [7:0] sdcard_dma_data;
    wire [8:0] sdcard_dma_addr;
    wire       sdcard_dma_strobe;
+   wire       avr_reset;
 
    assign cs_gate = ~clkout_cpu&~clkout_cpu2;
    assign sram_cs_ide = sram_cs & ~sram_a[11] & ~sram_a[10] & cs_gate;
@@ -118,7 +119,7 @@ module top (
 
    cdda_interface #(.CLK_FREQUENCY(CPU_FREQ*4))
      cdda_inst(.bck(SCK), .sd(SDAT), .lrck(LRCK),
-	       .clk(clkout), .rst(1'b0),
+	       .clk(clkout), .rst(avr_reset),
 	       .sram_a(sram_a),
 	       .sram_d_in(d_to_ide_or_cdda_or_sdcard), .sram_d_out(d_from_cdda),
 	       .sram_cs(sram_cs_cdda), .sram_oe(sram_oe), .sram_we(sram_we),
@@ -127,7 +128,7 @@ module top (
 
    sdcard_interface
      sdcard_inst(.sclk(sdcard_sck), .mosi(sdcard_mosi), .miso(sdcard_miso),
-		 .clk(clkout), .rst(1'b0),
+		 .clk(clkout), .rst(avr_reset),
 		 .sram_a(sram_a), .sram_d_in(d_to_ide_or_cdda_or_sdcard),
 		 .sram_d_out(d_from_sdcard), .sram_cs(sram_cs_sdcard),
 		 .sram_oe(sram_oe), .sram_we(sram_we), .sram_wait(sram_wait_sdcard),
@@ -148,7 +149,7 @@ module top (
 	 .pm_init_high(`PM_INIT_HIGH),
 `endif
 	 )
-     avr_inst(.nrst(1'b1), .clk(clkout_cpu),
+     avr_inst(.nrst(1'b1), .clk(clkout_cpu), .rst_out(avr_reset),
 	      .porta({LED7, LED6, LED5, LED4, LED3, LED2, LED1, LED0}),
 	      .portb({PORTB7, PORTB6, PORTB5, PORTB4, PORTB3, PORTB2, PORTB1, PORTB0}),
 	      .sdcard_sck(sdcard_sck), .sdcard_mosi(sdcard_mosi),

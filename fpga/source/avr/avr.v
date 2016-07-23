@@ -3,6 +3,7 @@
 module avr (
 	    input                         nrst,
 	    input                         clk,
+	    output                        rst_out,
 			 
 	    // PORTA
 	    inout[7:0]                    porta,
@@ -142,8 +143,7 @@ rst_gen #(.rst_high(rst_act_high))
 		.nrst_clksw ()
 		);
 
-
-
+assign rst_out = ~core_ireset;
    
 wire core_valid_instr;
 wire core_change_flow;
