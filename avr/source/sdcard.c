@@ -292,10 +292,15 @@ bool sd_read_block(uint32_t blk, uint8_t *ptr)
     goto fail;
   }
 #ifdef USE_SDCARD_MODULE
+  SDCARD_CRC16HI = 0;
+  SDCARD_CRC16LO = 0;
   sd_xfer_block(ptr);
-  /* Discard CRC */
-  spi_recv_byte();
-  spi_recv_byte();
+  uint8_t crc1_hi = SDCARD_CRC16HI;
+  uint8_t crc1_lo = SDCARD_CRC16LO;
+  uint8_t crc2_hi = spi_recv_byte();
+  uint8_t crc2_lo = spi_recv_byte();
+  if (crc2_hi != crc1_hi || crc2_lo != crc1_lo)
+    goto fail;
 #else
   uint16_t cnt = 512;
   do {

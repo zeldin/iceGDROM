@@ -10,7 +10,9 @@ module sdcard_spi (
 		   input [7:0] divider,
 		   input [4:0] bits,
 		   input start,
-		   output finished
+		   output finished,
+		   output crc_bit,
+		   output crc_strobe,
 		  );
 
    reg 	     sclk_d, sclk_q;
@@ -23,6 +25,8 @@ module sdcard_spi (
    assign    mosi = shift_out_q[7];
    assign    finished = active_q & ~active_d;
    assign    data_out = {shift_in_q[6:0], latch_q};
+   assign    crc_bit = latch_q;
+   assign    crc_strobe = active_q & toggle & sclk_q;
 
    always @(posedge clk) begin
       if (divider == 0)
