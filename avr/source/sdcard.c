@@ -257,12 +257,18 @@ static void sd_xfer_block_hw()
   loop_until_bit_is_clear(SDCARD_CONTROL, 6);
 }
 
+#define ADDR_HIGH(a) ((uint8_t)(((uint16_t)(void *)(a))>>8))
+
 static void __inline sd_xfer_block(uint8_t *ptr)
 {
-  if (((((uint16_t)ptr)>>8)&0xfe) == (((uint16_t)IDE_DATA_BUFFER)>>8)) {
+  if (((uint8_t)(ADDR_HIGH(ptr)&0xfe)) == ADDR_HIGH(IDE_DATA_BUFFER)) {
     IDE_IOCONTROL = 0x08;
     sd_xfer_block_hw();
     IDE_IOCONTROL = 0x00;
+  } else if (((uint8_t)(ADDR_HIGH(ptr)&0xfc)) == ADDR_HIGH(CDDA_DATA_BUFFER)) {
+    CDDA_CONTROL = (CDDA_CONTROL & ~0xe)|4|(uint8_t)((ADDR_HIGH(ptr)&2)<<2);
+    sd_xfer_block_hw();
+    CDDA_CONTROL &= ~0xe;
   } else {
     sd_xfer_block_sw(ptr);
   }

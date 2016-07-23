@@ -12,6 +12,9 @@ module cdda_interface (
 		       input       sram_oe,
 		       input       sram_we,
 		       output      sram_wait,
+		       input[7:0]  sdcard_dma_data,
+		       input[8:0]  sdcard_dma_addr,
+		       input       sdcard_dma_strobe,
 		       );
 
    parameter CLK_FREQUENCY = 33868800;
@@ -33,15 +36,22 @@ module cdda_interface (
    reg enabled_d, enabled_q;
    reg dso_enabled_d, dso_enabled_q;
    reg underflow_d, underflow_q;
+   reg dma_mode_d, dma_mode_q;
+   reg dma_buffer_select_d, dma_buffer_select_q;
    reg [7:0] bufpos_d, bufpos_q;
    reg [7:0] last_valid_data_d, last_valid_data_q;
    reg [7:0] scratchpad_d, scratchpad_q;
 
-   assign cpu_access_pos = sram_a[9:2];
-   assign cpu_writes_to_buffer = sram_cs & sram_we & sram_a[10];
-   assign cpu_writes_left = cpu_writes_to_buffer & ~sram_a[1];
-   assign cpu_writes_right = cpu_writes_to_buffer & sram_a[1];
-   assign cpu_writes_high = sram_a[0];
+   wire [9:0] write_addr;
+   wire [7:0] write_data;
+   assign write_addr = (dma_mode_q? {dma_buffer_select_q, sdcard_dma_addr} : sram_a[9:0]);
+   assign write_data = (dma_mode_q? sdcard_dma_data : sram_d_in);
+
+   assign cpu_access_pos = write_addr[9:2];
+   assign cpu_writes_to_buffer = (dma_mode_q? sdcard_dma_strobe : (sram_cs & sram_we & sram_a[10]));
+   assign cpu_writes_left = cpu_writes_to_buffer & ~write_addr[1];
+   assign cpu_writes_right = cpu_writes_to_buffer & write_addr[1];
+   assign cpu_writes_high = write_addr[0];
    assign cpu_writes_low  = ~cpu_writes_high;
 
    digital_sound_output #(.CLK_FREQUENCY(CLK_FREQUENCY))
@@ -53,20 +63,21 @@ module cdda_interface (
 			     .read_addr(bufpos_q),
 			     .read_data(left_read_data),
 			     .write_addr(cpu_access_pos),
-			     .write_data({sram_d_in, sram_d_in}),
+			     .write_data({write_data, write_data}),
 			     .write_hi(cpu_writes_left & cpu_writes_high),
 			     .write_lo(cpu_writes_left & cpu_writes_low));
 
    ide_data_buffer right_data(.clk(clk), .rst(rst),
-			      .read_addr(bufpos_q), .read_data(right_read_data),
+			      .read_addr(bufpos_q),
+			      .read_data(right_read_data),
 			      .write_addr(cpu_access_pos),
-			      .write_data({sram_d_in, sram_d_in}),
+			      .write_data({write_data, write_data}),
 			      .write_hi(cpu_writes_right & cpu_writes_high),
 			      .write_lo(cpu_writes_right & cpu_writes_low));
 
    always @(*) begin
       case (sram_a[1:0])
-	2'b00: sram_d = { 6'b000000, underflow_q, enabled_q };
+	2'b00: sram_d = { 4'b0000, dma_buffer_select_q, dma_mode_q, underflow_q, enabled_q };
 	2'b01: sram_d = bufpos_q;
 	2'b10: sram_d = last_valid_data_q;
 	2'b11: sram_d = scratchpad_q;
@@ -80,6 +91,8 @@ module cdda_interface (
       enabled_d = enabled_q;
       last_valid_data_d = last_valid_data_q;
       scratchpad_d = scratchpad_q;
+      dma_mode_d = dma_mode_q;
+      dma_buffer_select_d = dma_buffer_select_q;
 
       if (enabled_q) begin
 	 dso_enabled_d = 1'b1;
@@ -101,6 +114,8 @@ module cdda_interface (
 	   2'b00: begin
 	      enabled_d = sram_d_in[0];
 	      if (sram_d_in[1]) underflow_d = 1'b0;
+	      dma_mode_d = sram_d_in[2];
+	      dma_buffer_select_d = sram_d_in[3];
 	   end
 	   2'b01: bufpos_d = sram_d_in;
 	   2'b10: last_valid_data_d = sram_d_in;
@@ -117,6 +132,8 @@ module cdda_interface (
 	 bufpos_q <= 8'h00;
 	 last_valid_data_q <= 8'h00;
 	 scratchpad_q <= 8'h55;
+	 dma_mode_q <= 1'b0;
+	 dma_buffer_select_q <= 1'b0;
       end else begin
 	 enabled_q <= enabled_d;
 	 dso_enabled_q <= dso_enabled_d;
@@ -124,6 +141,8 @@ module cdda_interface (
 	 bufpos_q <= bufpos_d;
 	 last_valid_data_q <= last_valid_data_d;
 	 scratchpad_q <= scratchpad_d;
+	 dma_mode_q <= dma_mode_d;
+	 dma_buffer_select_q <= dma_buffer_select_d;
       end
    end
 

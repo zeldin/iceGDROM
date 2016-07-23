@@ -73,7 +73,7 @@ module top (
    assign cs_gate = ~clkout_cpu&~clkout_cpu2;
    assign sram_cs_ide = sram_cs & ~sram_a[11] & ~sram_a[10] & cs_gate;
    assign sram_cs_sdcard = sram_cs & ~sram_a[11] & sram_a[10] & cs_gate;
-   assign sram_cs_cdda = sram_cs & sram_a[11];
+   assign sram_cs_cdda = sram_cs & sram_a[11] & cs_gate;
 
    generate
       if(REFCLK_FREQ != CPU_FREQ*4) begin : use_clkgen
@@ -116,13 +116,14 @@ module top (
 	      .sdcard_dma_data(sdcard_dma_data), .sdcard_dma_addr(sdcard_dma_addr),
 	      .sdcard_dma_strobe(sdcard_dma_strobe));
 
-   cdda_interface #(.CLK_FREQUENCY(CPU_FREQ))
+   cdda_interface #(.CLK_FREQUENCY(CPU_FREQ*4))
      cdda_inst(.bck(SCK), .sd(SDAT), .lrck(LRCK),
-	       .clk(clkout_cpu), .rst(1'b0),
+	       .clk(clkout), .rst(1'b0),
 	       .sram_a(sram_a),
 	       .sram_d_in(d_to_ide_or_cdda_or_sdcard), .sram_d_out(d_from_cdda),
 	       .sram_cs(sram_cs_cdda), .sram_oe(sram_oe), .sram_we(sram_we),
-	       .sram_wait(sram_wait_cdda));
+	       .sram_wait(sram_wait_cdda), .sdcard_dma_data(sdcard_dma_data),
+	       .sdcard_dma_addr(sdcard_dma_addr), .sdcard_dma_strobe(sdcard_dma_strobe));
 
    sdcard_interface
      sdcard_inst(.sclk(sdcard_sck), .mosi(sdcard_mosi), .miso(sdcard_miso),
