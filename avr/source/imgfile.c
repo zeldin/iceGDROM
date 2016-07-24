@@ -98,8 +98,18 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
   uint8_t skip_before = 0, skip_after = 0;
   switch((mode>>1)&7) {
   case 0:
-    if(!(mode & 0x10))
-      return false;
+    if(!(mode & 0x10)) {
+      /* Data select with "Any type"; check for data track and assume
+	 mode2/form1 for XA and mode1 otherwise */
+      if (rmode != 4)
+	return false;
+      if (imgheader.disk_type == 0x20) {
+	skip_after = 280/2;
+	if (!(mode & 0x40))
+	  skip_before = 8/2;
+      } else
+	skip_after = 288/2;
+    }
     break;
   case 1:
     if (rmode != 0)
@@ -150,7 +160,13 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
 
 bool imgfile_seek(uint32_t sec, uint8_t mode)
 {
-  return imgfile_seek_internal(sec, mode, true);
+  if (!imgfile_seek_internal(sec, mode, true)) {
+    DEBUG_PUTS("SEEK mode=");
+    DEBUG_PUTX(mode);
+    DEBUG_PUTS(" failed\n");
+    return false;
+  }
+  return true;
 }
 
 bool imgfile_seek_cdda(uint32_t sec)
