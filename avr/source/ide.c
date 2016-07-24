@@ -487,13 +487,6 @@ static void service_cd_read()
   DEBUG_PUTC(' ');
   DEBUG_PUTX(packet.cd_read.transfer_length[1]);
   DEBUG_PUTX(packet.cd_read.transfer_length[2]);
-#if 1
-  DEBUG_PUTC(' ');
-  DEBUG_PUTC('{');
-  DEBUG_PUTX(IDE_CYLHI);
-  DEBUG_PUTX(IDE_CYLLO);
-  DEBUG_PUTS("}\n");
-#endif
   DEBUG_PUTC(']');
 #endif
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2]);
