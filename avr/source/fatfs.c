@@ -5,16 +5,16 @@
 #include "fatfs.h"
 #include "debug.h"
 
-static uint8_t cache[2][512];
-static uint32_t cache_block_nr[2];
+#define NUM_CACHE_SLOTS 2
+
+static uint8_t cache[NUM_CACHE_SLOTS][512];
+static uint32_t cache_block_nr[NUM_CACHE_SLOTS];
+static uint8_t cache_lru[NUM_CACHE_SLOTS];
 static uint32_t fat_start, data_start, root_dir_start;
 static uint16_t root_dir_entries;
 static uint8_t cluster_shift, blocks_per_cluster;
 static bool fat32;
 static uint32_t file_start_cluster;
-
-#define data_block cache[0]
-#define fat_block cache[1]
 
 #define FAT_EOC   0x80000000
 #define FAT_ERROR 0x40000000
@@ -23,23 +23,50 @@ char filename[11] = "DISC0000GI0";
 
 static void reset_cache()
 {
-  cache_block_nr[0] = cache_block_nr[1] = ~0;
+  uint8_t slot;
+  for (slot = 0; slot < NUM_CACHE_SLOTS; slot++) {
+    cache_block_nr[slot] = ~0;
+    cache_lru[slot] = slot;
+  }
 }
 
-static bool read_block(uint32_t nr, uint8_t slot)
+static uint8_t *read_block(uint32_t nr)
 {
-  if (nr == cache_block_nr[slot])
-    return true;
-  cache_block_nr[slot] = nr;
-  if (sd_read_block(nr, cache[slot]))
-    return true;
-  cache_block_nr[slot] = ~0;
-  return false;
+  uint8_t slot, xslot = ~0;
+  for (slot = 0; slot < NUM_CACHE_SLOTS; slot++) {
+    if (nr == cache_block_nr[slot])
+      break;
+    else if (cache_block_nr[slot] == ~0)
+      xslot = slot;
+  }
+  if (slot >= NUM_CACHE_SLOTS) {
+    if (xslot < NUM_CACHE_SLOTS)
+      slot = xslot;
+    else {
+      for (slot = 0; slot < NUM_CACHE_SLOTS-1; slot++) {
+	if (cache_lru[slot] == NUM_CACHE_SLOTS-1)
+	  break;
+      }
+    }
+  }
+  if (nr != cache_block_nr[slot]) {
+    cache_block_nr[slot] = nr;
+    if (!sd_read_block(nr, cache[slot])) {
+      cache_block_nr[slot] = ~0;
+      return NULL;
+    }
+  }
+  uint8_t i, old_lru = cache_lru[slot];
+  for (i=0; i<NUM_CACHE_SLOTS; i++)
+    if (cache_lru[i] < old_lru)
+      cache_lru[i]++;
+  cache_lru[slot] = 0;
+  return cache[slot];
 }
 
-static bool read_cluster_block(uint32_t nr, uint8_t sub)
+static uint8_t *read_cluster_block(uint32_t nr, uint8_t sub)
 {
-  return read_block(data_start+(nr<<cluster_shift)+sub, 0);
+  return read_block(data_start+(nr<<cluster_shift)+sub);
 }
 
 static uint32_t get_fat_entry(uint32_t cluster)
@@ -52,7 +79,8 @@ static uint32_t get_fat_entry(uint32_t cluster)
     n = (uint8_t)cluster;
     cluster >>= 8;
   }
-  if (!read_block(fat_start+cluster, 1))
+  uint8_t *fat_block = read_block(fat_start+cluster);
+  if (!fat_block)
     return FAT_ERROR|FAT_EOC;
   if (fat32) {
     cluster = (((uint32_t*)fat_block)[n])&0x0fffffff;
@@ -70,7 +98,8 @@ static uint32_t get_fat_entry(uint32_t cluster)
 
 static bool check_root_block(uint32_t part_start)
 {
-  if (!read_block(part_start, 0))
+  uint8_t *data_block = read_block(part_start);
+  if (!data_block)
     return false;
 
   if(data_block[0x1fe] != 0x55 ||
@@ -140,11 +169,12 @@ static bool check_root_block(uint32_t part_start)
 bool fatfs_mount()
 {
   reset_cache();
-  data_block[0x1ff] = 0;
   if (check_root_block(0))
     return true;
   /* Not a valid FAT root block at 0, check for partition table */
-  if(data_block[0x1fe] != 0x55 ||
+  uint8_t *data_block = read_block(0);
+  if(!data_block ||
+     data_block[0x1fe] != 0x55 ||
      data_block[0x1ff] != 0xaa)
     return false;
   if ((data_block[0x1be] & 0x7f) != 0)
@@ -165,14 +195,13 @@ bool fatfs_read_rootdir()
     if (!fat32 && !rde)
       break;
     if (!entry) {
-      p = data_block;
       if (fat32) {
-	if (!read_cluster_block(blk, cnr++))
-	  return false;
+	p = read_cluster_block(blk, cnr++);
       } else {
-	if (!read_block(blk++, 0))
-	  return false;
+	p = read_block(blk++);
       }
+      if (!p)
+	return false;
     }
     if (!*p)
       break;
@@ -245,20 +274,10 @@ bool fatfs_read_next_sector(struct fatfs_handle *handle, uint8_t *buf)
 }
 
 
-bool fatfs_read_block(uint32_t cluster, uint16_t blk, uint8_t *buf)
-{
-  while(blk >= blocks_per_cluster) {
-    cluster = get_fat_entry(cluster);
-    if (cluster & FAT_EOC)
-      return false;
-    blk -= blocks_per_cluster;
-  }
-  return sd_read_block(data_start+(cluster<<cluster_shift)+blk, buf);
-}
-
 bool fatfs_read_header(void *buf, uint8_t size)
 {
-  if (!read_cluster_block(file_start_cluster, 0))
+  uint8_t *data_block = read_cluster_block(file_start_cluster, 0);
+  if (!data_block)
     return false;
   memcpy(buf, data_block, size);
   return true;
