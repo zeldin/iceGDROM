@@ -275,7 +275,7 @@ static void __inline sd_xfer_block(uint8_t *ptr)
 }
 #endif
 
-bool sd_read_block(uint32_t blk, uint8_t *ptr)
+static bool sd_try_read_block(uint32_t blk, uint8_t *ptr)
 {
   if (!is_hc)
     blk <<= 9;
@@ -318,5 +318,15 @@ bool sd_read_block(uint32_t blk, uint8_t *ptr)
   PORTB |= _BV(SPI_CS);
   sd_spi_disable();
   DEBUG_PUTS("Block read failed\n");
+  return false;
+}
+
+bool sd_read_block(uint32_t blk, uint8_t *ptr)
+{
+  uint8_t tries = 0;
+  do {
+    if (sd_try_read_block(blk, ptr))
+      return true;
+  } while(++tries < 5);
   return false;
 }
