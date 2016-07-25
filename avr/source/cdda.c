@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "debug.h"
 #include "cdda.h"
@@ -7,9 +8,67 @@
 #include "timer.h"
 #include "imgfile.h"
 
-static bool cdda_active = false;
+uint8_t cdda_subcode_q[12];
+
+bool cdda_active = false;
 static uint8_t cdda_next_index;
 static uint8_t cdda_subframe;
+
+static uint32_t cdda_start_blk, cdda_end_blk, cdda_blk;
+static uint8_t cdda_repeat;
+
+static void advance_msf(uint8_t *p)
+{
+  if ((p[2]&0xf) == 9) {
+    p[2] += 7;
+    return;
+  }
+  if (p[2] != 0x74) {
+    p[2] ++;
+    return;
+  }
+  p[2] = 0;
+  if ((p[1]&0x0f) != 9) {
+    p[1] ++;
+    return;
+  }
+  if (p[1] != 0x59) {
+    p[1] += 7;
+    return;
+  }
+  p[1] = 0;
+  if ((p[0]&0x0f) != 9) {
+    p[0] ++;
+    return;
+  }
+  p[0] += 7;
+}
+
+static uint8_t tobcd(uint8_t v)
+{
+  uint8_t l = v%10;
+  v /= 10;
+  return (v<<4)|l;
+}
+
+static void set_msf(uint8_t *p, uint32_t blk)
+{
+  uint8_t m = blk/4500;
+  uint16_t sf = blk%4500;
+  uint8_t s = sf/75;
+  uint8_t f = sf%75;
+  p[0] = tobcd(m);
+  p[1] = tobcd(s);
+  p[2] = tobcd(f);
+}
+
+static void setup_subchannel_q()
+{
+  cdda_subcode_q[1] = 0x01; /*FIXME*/
+  cdda_subcode_q[2] = 0x01;
+  set_msf(&cdda_subcode_q[3], 0);
+  set_msf(&cdda_subcode_q[7], cdda_blk);
+}
 
 static bool cdda_fill_buffer()
 {
@@ -23,14 +82,32 @@ static bool cdda_fill_buffer()
   if ((cdda_subframe += (512/16)) >= (2352/16)) {
     cdda_subframe -= (2352/16);
     /* Advance sector # */
+    advance_msf(&cdda_subcode_q[3]);
+    advance_msf(&cdda_subcode_q[7]);
+    cdda_blk++;
+    if (cdda_blk == cdda_end_blk) {
+      if (cdda_repeat) {
+	if (cdda_repeat < 15)
+	  --cdda_repeat;
+	cdda_blk = cdda_start_blk;
+	setup_subchannel_q();
+	if (imgfile_seek_cdda(cdda_blk))
+	  return true;
+      }
+      return false;
+    }
   }
 
   return true;
 }
 
-void cdda_start()
+void cdda_start(uint32_t start_blk, uint32_t end_blk, uint8_t repeat)
 {
   CDDA_CONTROL = 0x00;
+  cdda_blk = cdda_start_blk = start_blk;
+  cdda_end_blk = end_blk;
+  cdda_repeat = repeat;
+  setup_subchannel_q();
   cdda_next_index = 0;
   cdda_subframe = 0;
   if (cdda_fill_buffer() && cdda_fill_buffer()) {
@@ -48,6 +125,7 @@ void cdda_stop()
 {
   CDDA_CONTROL = 0x00;
   cdda_active = false;
+  memset(cdda_subcode_q, 0, sizeof(cdda_subcode_q));
 }
 
 void service_cdda()
@@ -71,4 +149,9 @@ void service_cdda()
     DEBUG_PUTC('}');
     CDDA_CONTROL = c;
   }
+}
+
+uint8_t cdda_get_status()
+{
+  return (cdda_active? 0x11 : 0x00);
 }

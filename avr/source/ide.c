@@ -271,6 +271,7 @@ static void process_packet()
   case 0x20: /* CD_PLAY */
   case 0x21: /* CD_SEEK */
   case 0x30: /* CD_READ */
+  case 0x40: /* CD_SCD */
     service_dma = (IDE_FEATURES & 1);
     service_mode = SERVICE_MODE_CMD;
     break;
@@ -286,7 +287,7 @@ static void set_secnr()
   if (disk_type == 0xff)
     IDE_SECNR = 0x06;
   else
-    IDE_SECNR = disk_type | 0x02;
+    IDE_SECNR = disk_type | (cdda_active? 0x03 : 0x02);
 }
 
 static void reset_irq()
@@ -503,22 +504,68 @@ static void service_cd_read()
 
 static void service_cd_playseek()
 {
+  uint32_t blk = 0, eblk = 0;
   if (packet.cd_play.ptype == 1) {
-    uint32_t blk = (((uint32_t)packet.cd_play.start_point[0])<<16)|(uint16_t)(packet.cd_play.start_point[1]<<8)|packet.cd_play.start_point[2];
-    if (!imgfile_seek_cdda(blk)) {
+    blk = (((uint32_t)packet.cd_play.start_point[0])<<16)|(uint16_t)(packet.cd_play.start_point[1]<<8)|packet.cd_play.start_point[2];
+    eblk = (((uint32_t)packet.cd_play.end_point[0])<<16)|(uint16_t)(packet.cd_play.end_point[1]<<8)|packet.cd_play.end_point[2];
+  }
+
+  if (!imgfile_seek_cdda(blk)) {
 #ifdef IDEDEBUG
-      DEBUG_PUTS("[SEEK ERROR]\n");
+    DEBUG_PUTS("[SEEK ERROR]\n");
 #endif
-      service_finish_packet(0x04); /* Abort */
-      return;
-    }
+    service_finish_packet(0x04); /* Abort */
+    return;
   }
   if (packet.cmd == 0x20) {
-    cdda_start();
+    cdda_start(blk, eblk, packet.cd_play.reptime&0x0f);
   } else {
     cdda_stop();
   }
+  set_secnr();
   service_finish_packet(0);
+}
+
+static void service_cd_scd()
+{
+  memset(IDE_DATA_BUFFER, 0, 4);
+  if (packet.get_scd.format == 1 &&
+      packet.get_scd.alloc_len_hi == 0 &&
+      packet.get_scd.alloc_len_lo == 14) {
+    IDE_DATA_BUFFER[1] = cdda_get_status();
+    IDE_DATA_BUFFER[3] = 14;
+    memcpy(&IDE_DATA_BUFFER[4], cdda_subcode_q, 10);
+    service_packet_data_last0(14/2);
+  } else if (packet.get_scd.format == 0 &&
+      packet.get_scd.alloc_len_hi == 0 &&
+      packet.get_scd.alloc_len_lo == 100) {
+    IDE_DATA_BUFFER[1] = cdda_get_status();
+    IDE_DATA_BUFFER[3] = 100;
+    uint8_t i, j, *p = &IDE_DATA_BUFFER[4];
+    uint16_t crc = 0;
+    for (i=0; i<12; i++) {
+      uint8_t sc = cdda_subcode_q[i];
+      for (j=0; j<8; j++) {
+	if (sc&0x80) {
+	  crc ^= 0x8000;
+	  *p++ = 0x7f;
+	} else {
+	  *p++ = 0x3f;
+	}
+	if (crc & 0x8000)
+	  crc = (crc << 1) ^ 0x1021;
+	else
+	  crc <<= 1;
+	sc <<= 1;
+      }
+      if (i == 9) {
+	cdda_subcode_q[10] = (~crc)>>8;
+	cdda_subcode_q[11] = ~crc;
+      }
+    }
+    service_packet_data_last0(100/2);
+  } else
+    service_finish_packet(0x04); /* Abort */
 }
 
 static void service_reset()
@@ -546,6 +593,9 @@ static void service_cmd()
     break;
   case 0x30: /* CD_READ */
     service_cd_read();
+    break;
+  case 0x40: /* CD_SCD */
+    service_cd_scd();
     break;
   default:
     service_finish_packet(0x04); /* Abort */

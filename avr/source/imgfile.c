@@ -5,6 +5,7 @@
 #include "fatfs.h"
 #include "hardware.h"
 #include "debug.h"
+#include "cdda.h"
 
 struct imgheader imgheader;
 
@@ -101,7 +102,7 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     if(!(mode & 0x10)) {
       /* Data select with "Any type"; check for data track and assume
 	 mode2/form1 for XA and mode1 otherwise */
-      if (rmode != 4)
+      if (!(rmode & 4))
 	return false;
       if (imgheader.disk_type == 0x20) {
 	skip_after = 280/2;
@@ -112,14 +113,14 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     }
     break;
   case 1:
-    if (rmode != 0)
+    if (rmode & 4)
       return false;
     break;
   case 2:
     skip_after = 288/2;
   case 3:
     /* FALLTHRU */
-    if (rmode != 4 || imgheader.disk_type == 0x20)
+    if (!(rmode & 4) || imgheader.disk_type == 0x20)
       return false;
     break;
   case 4:
@@ -127,7 +128,7 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     /* FALLTHRU */
   case 5:
     skip_after += 4/2;
-    if (rmode != 4 || imgheader.disk_type != 0x20)
+    if (!(rmode & 4) || imgheader.disk_type != 0x20)
       return false;
     if (!(mode & 0x40))
       skip_before = 8/2;
@@ -154,6 +155,8 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     imgfile_skip_after = skip_after;
     imgfile_need_to_read = true;
     imgfile_sector_completed = 0;
+  } else {
+    cdda_subcode_q[0] = (rmode<<4)|1;
   }
   return fatfs_seek((data? &read_handle : &cdda_handle), blk);
 }
