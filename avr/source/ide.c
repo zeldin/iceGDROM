@@ -400,6 +400,21 @@ ISR(INT1_vect)
     data_irq();
 }
 
+static uint32_t get_fad(const uint8_t *bytes, bool msf)
+{
+  if (msf) {
+    uint16_t sec = bytes[0]*60+bytes[1];
+    return ((uint32_t)sec)*75+bytes[2];
+  } else {
+    union { uint32_t fad; uint8_t b[4]; } u;
+    u.b[0] = bytes[2];
+    u.b[1] = bytes[1];
+    u.b[2] = bytes[0];
+    u.b[3] = 0;
+    return u.fad;
+  }
+}
+
 static void service_get_toc()
 {
   uint8_t s = packet.get_toc.select;
@@ -491,7 +506,7 @@ static void service_cd_read()
   DEBUG_PUTC(']');
 #endif
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2]);
-  uint32_t blk = (((uint32_t)packet.cd_read.start_addr[0])<<16)|(uint16_t)(packet.cd_read.start_addr[1]<<8)|packet.cd_read.start_addr[2];
+  uint32_t blk = get_fad(packet.cd_read.start_addr, packet.cd_read.flags&1);
   if (!imgfile_seek(blk, packet.cd_read.flags)) {
 #ifdef IDEDEBUG
     DEBUG_PUTS("[SEEK ERROR]\n");
@@ -504,11 +519,16 @@ static void service_cd_read()
 
 static void service_cd_playseek()
 {
-  uint32_t blk = 0, eblk = 0;
-  if (packet.cd_play.ptype == 1) {
-    blk = (((uint32_t)packet.cd_play.start_point[0])<<16)|(uint16_t)(packet.cd_play.start_point[1]<<8)|packet.cd_play.start_point[2];
-    eblk = (((uint32_t)packet.cd_play.end_point[0])<<16)|(uint16_t)(packet.cd_play.end_point[1]<<8)|packet.cd_play.end_point[2];
+  bool msf;
+  switch (packet.cd_play.ptype) {
+  case 1: msf=false; break;
+  case 2: msf=true; break;
+  default:
+    service_finish_packet(0x04); /* Abort */
+    return;
   }
+  uint32_t blk = get_fad(packet.cd_play.start_point, msf);
+  uint32_t eblk = get_fad(packet.cd_play.end_point, msf);
 
   if (!imgfile_seek_cdda(blk)) {
 #ifdef IDEDEBUG
