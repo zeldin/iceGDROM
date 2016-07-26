@@ -135,7 +135,7 @@ module top (
 		 .dma_data(sdcard_dma_data), .dma_addr(sdcard_dma_addr), .dma_strobe(sdcard_dma_strobe));
 
    avr #(.pm_size(4),
-	 .dm_size(2),
+	 .dm_size(4),
 	 .sram_address(16'hE000),
 	 .sram_size(4096),
 	 .impl_avr109(1),

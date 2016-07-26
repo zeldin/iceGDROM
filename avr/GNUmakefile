@@ -10,7 +10,7 @@ OBJCOPY = avr-objcopy
 MCU = atmega64
 
 CFLAGS = -Os -fomit-frame-pointer
-LDFLAGS = -Wl,--defsym,__stack=0x7ff -mrelax
+LDFLAGS = -Wl,--defsym,__stack=0xfff -mrelax
 
 ALL_CFLAGS = -mmcu=$(MCU) -I. -I$(SRC) $(CFLAGS)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -I$(SRC) -x assembler-with-cpp $(ASFLAGS)
