@@ -49,6 +49,8 @@ int main()
 {
   DDRA = 0xff;
   DDRB = 0x00;
+  PORTB = 0x00;
+  DDRB |= _BV(EMPH_BIT);
   DEBUG_INIT();
   timer_init();
   sei();

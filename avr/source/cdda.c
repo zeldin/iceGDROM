@@ -14,7 +14,7 @@ bool cdda_active = false;
 static uint8_t cdda_next_index;
 static uint8_t cdda_subframe;
 
-static uint32_t cdda_start_blk, cdda_end_blk, cdda_blk;
+static uint32_t cdda_start_blk, cdda_end_blk, cdda_blk, cdda_next_track;
 static uint8_t cdda_repeat;
 
 static void advance_msf(uint8_t *p)
@@ -64,10 +64,43 @@ static void set_msf(uint8_t *p, uint32_t blk)
 
 static void setup_subchannel_q()
 {
-  cdda_subcode_q[1] = 0x01; /*FIXME*/
+  cdda_subcode_q[1] = 0xaa;
   cdda_subcode_q[2] = 0x01;
   set_msf(&cdda_subcode_q[3], 0);
   set_msf(&cdda_subcode_q[7], cdda_blk);
+
+  uint8_t tr;
+  uint8_t emph = 0;
+  const struct toc *t = &toc[0];
+  const struct tocentry *e = &t->lead_out;
+  {
+      union { uint32_t fad; uint8_t b[4]; } u;
+      u.b[0] = e->fad[2];
+      u.b[1] = e->fad[1];
+      u.b[2] = e->fad[0];
+      u.b[3] = 0;
+      cdda_next_track = u.fad;
+  }
+  e = &t->entry[0];
+  for (tr=1; tr<100; tr++, e++)
+    if (e->ctrl_adr != 0xff) {
+      union { uint32_t fad; uint8_t b[4]; } u;
+      u.b[0] = e->fad[2];
+      u.b[1] = e->fad[1];
+      u.b[2] = e->fad[0];
+      u.b[3] = 0;
+      if (u.fad > cdda_blk) {
+	cdda_next_track = u.fad;
+	break;
+      }
+      cdda_subcode_q[1] = tobcd(tr);
+      set_msf(&cdda_subcode_q[3], cdda_blk - u.fad);
+      emph = e->ctrl_adr & 0x10;
+    }
+  if (emph)
+    PORTB |= _BV(EMPH_BIT);
+  else
+    PORTB &= ~_BV(EMPH_BIT);
 }
 
 static bool cdda_fill_buffer()
@@ -85,6 +118,9 @@ static bool cdda_fill_buffer()
     advance_msf(&cdda_subcode_q[3]);
     advance_msf(&cdda_subcode_q[7]);
     cdda_blk++;
+    if (cdda_blk == cdda_next_track) {
+      setup_subchannel_q();
+    }
     if (cdda_blk == cdda_end_blk) {
       if (cdda_repeat) {
 	if (cdda_repeat < 15)

@@ -21,8 +21,8 @@ static bool is_hc;
 
 static __inline void sd_spi_enable_init()
 {
-  PORTB = _BV(SPI_CS);
-  DDRB = _BV(SPI_CS)|_BV(SPI_MOSI)|_BV(SPI_SCK);
+  PORTB |= _BV(SPI_CS);
+  DDRB |= _BV(SPI_CS)|_BV(SPI_MOSI)|_BV(SPI_SCK);
 #ifdef USE_SDCARD_MODULE
   SDCARD_CONTROL = 7;
   SDCARD_DIVIDER = 135; /* 33.9MHz/136 = 249kHz */

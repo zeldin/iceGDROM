@@ -10,6 +10,8 @@
 #define SD_CD_PIN PINB
 #define SD_CD_BIT PIN7
 
+#define EMPH_BIT PIN0
+
 
 #define IDE_STATUS     _MMIO_BYTE(0xe000)
 #define IDE_ERROR      _MMIO_BYTE(0xe001)

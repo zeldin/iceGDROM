@@ -8,6 +8,7 @@
 #include "cdda.h"
 
 struct imgheader imgheader;
+struct toc toc[2];
 
 static struct fatfs_handle read_handle;
 static struct fatfs_handle cdda_handle;
@@ -20,8 +21,18 @@ static bool imgfile_need_to_read;
 
 bool imgfile_init()
 {
-  return fatfs_read_header(&imgheader, sizeof(imgheader)) &&
-    imgheader.magic == HEADER_MAGIC;
+  if (!fatfs_read_header(&imgheader, sizeof(imgheader), 0) ||
+      imgheader.magic != HEADER_MAGIC ||
+      imgheader.num_tocs < 1 || imgheader.num_tocs > 2)
+    return false;
+
+  uint8_t i;
+  for (i=0; i<imgheader.num_tocs; i++) {
+    if (!fatfs_read_header(&toc[i], sizeof(toc[i]), i+1))
+      return false;
+  }
+
+  return true;
 }
 
 bool imgfile_read_next_sector()
@@ -69,12 +80,6 @@ bool imgfile_sector_complete()
 bool imgfile_read_next_sector_cdda(uint8_t idx)
 {
   return fatfs_read_next_sector(&cdda_handle, &CDDA_DATA_BUFFER[(idx? 512:0)]);
-}
-
-bool imgfile_read_toc(uint8_t select)
-{
-  return fatfs_seek(&read_handle, select+1) &&
-    fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0]);
 }
 
 static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)

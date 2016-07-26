@@ -422,10 +422,7 @@ static void service_get_toc()
     service_finish_packet(0x50);
     return;
   }
-  if (!imgfile_read_toc(s)) {
-    service_finish_packet(0x04); /* Abort */
-    return;
-  }
+  memcpy(IDE_DATA_BUFFER, &toc[s], 408);
   service_packet_data_last0(408/2);
 }
 

@@ -274,9 +274,16 @@ bool fatfs_read_next_sector(struct fatfs_handle *handle, uint8_t *buf)
 }
 
 
-bool fatfs_read_header(void *buf, uint8_t size)
+bool fatfs_read_header(void *buf, uint16_t size, uint8_t blk)
 {
-  uint8_t *data_block = read_cluster_block(file_start_cluster, 0);
+  uint32_t clu = file_start_cluster;
+  while (blk >= blocks_per_cluster) {
+    clu = get_fat_entry(clu);
+    if (clu & FAT_EOC)
+      return false;
+    blk -= blocks_per_cluster;
+  }
+  uint8_t *data_block = read_cluster_block(clu, blk);
   if (!data_block)
     return false;
   memcpy(buf, data_block, size);
