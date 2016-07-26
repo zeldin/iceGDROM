@@ -11,6 +11,7 @@
 uint8_t cdda_subcode_q[12];
 
 bool cdda_active = false;
+uint8_t cdda_toc = 0;
 static uint8_t cdda_next_index;
 static uint8_t cdda_subframe;
 
@@ -71,7 +72,7 @@ static void setup_subchannel_q()
 
   uint8_t tr;
   uint8_t emph = 0;
-  const struct toc *t = &toc[0];
+  const struct toc *t = (cdda_toc? &toc[1] : &toc[0]);
   const struct tocentry *e = &t->lead_out;
   {
       union { uint32_t fad; uint8_t b[4]; } u;

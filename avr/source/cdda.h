@@ -5,5 +5,6 @@ extern void service_cdda();
 extern uint8_t cdda_get_status();
 
 extern bool cdda_active;
+extern uint8_t cdda_toc;
 extern uint8_t cdda_subcode_q[12];
 

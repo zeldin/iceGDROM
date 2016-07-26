@@ -162,6 +162,10 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     imgfile_sector_completed = 0;
   } else {
     cdda_subcode_q[0] = (rmode<<4)|1;
+    if (imgheader.num_tocs > 1 && blk >= 45000)
+      cdda_toc = 0x80;
+    else
+      cdda_toc = 0x00;
   }
   return fatfs_seek((data? &read_handle : &cdda_handle), blk);
 }
