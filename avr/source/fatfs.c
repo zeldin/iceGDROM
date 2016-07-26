@@ -5,7 +5,7 @@
 #include "fatfs.h"
 #include "debug.h"
 
-#define NUM_CACHE_SLOTS 2
+#define NUM_CACHE_SLOTS 4
 
 static uint8_t cache[NUM_CACHE_SLOTS][512];
 static uint32_t cache_block_nr[NUM_CACHE_SLOTS];
