@@ -20,6 +20,7 @@ static uint32_t file_start_cluster;
 #define FAT_ERROR 0x40000000
 
 char filename[11] = "DISC0000GI0";
+uint8_t fatfs_filenumber = 0;
 
 static void reset_cache()
 {
@@ -293,6 +294,7 @@ bool fatfs_read_header(void *buf, uint16_t size, uint8_t blk)
 void fatfs_reset_filename()
 {
   memset(filename+4, '0', 4);
+  fatfs_filenumber = 0;
 }
 
 void fatfs_next_filename()
@@ -306,4 +308,5 @@ void fatfs_next_filename()
       break;
     }
   }
+  fatfs_filenumber++;
 }

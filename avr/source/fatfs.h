@@ -9,3 +9,4 @@ extern bool fatfs_read_next_sector(struct fatfs_handle *handle, uint8_t *buf);
 extern bool fatfs_read_header(void *buf, uint16_t size, uint8_t blk);
 extern void fatfs_reset_filename();
 extern void fatfs_next_filename();
+extern uint8_t fatfs_filenumber;

@@ -277,6 +277,7 @@ static void __inline sd_xfer_block(uint8_t *ptr)
 
 static bool sd_try_read_block(uint32_t blk, uint8_t *ptr)
 {
+  PORTA |= 0x80;
   if (!is_hc)
     blk <<= 9;
   sd_spi_enable();
@@ -312,11 +313,13 @@ static bool sd_try_read_block(uint32_t blk, uint8_t *ptr)
 #endif
   PORTB |= _BV(SPI_CS);
   sd_spi_disable();
+  PORTA &= ~0x80;
   return true;
 
  fail:
   PORTB |= _BV(SPI_CS);
   sd_spi_disable();
+  PORTA &= ~0x80;
   DEBUG_PUTS("Block read failed\n");
   return false;
 }
