@@ -5,6 +5,7 @@
 
 #include "msg.h"
 #include "track.h"
+#include "nrg.h"
 #include "gdi.h"
 #include "imgfile.h"
 
@@ -14,6 +15,7 @@ static struct {
   bool (*check_file)(FILE*);
   bool (*parse_and_add_tracks)(FILE*, const char *);
 } formats[] = {
+  { "Nero", true, nrg_check_file, nrg_parse_and_add_tracks },
   { "GDI", false, gdi_check_file, gdi_parse_and_add_tracks },
 };
 

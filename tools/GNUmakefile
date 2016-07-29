@@ -2,7 +2,7 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-SOURCES = main.c imgfile.c gdi.c track.c msg.c
+SOURCES = main.c imgfile.c nrg.c gdi.c track.c msg.c
 
 OBJ = $(SOURCES:%.c=%.o)
 
