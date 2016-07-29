@@ -12,6 +12,14 @@
 #include "imgfile.h"
 #include "timer.h"
 
+#include "config.h"
+
+#if SD_CD_PIN_ACTIVE_HIGH
+#define SDCARD_INSERTED (bit_is_set(SD_CD_PIN, SD_CD_BIT))
+#else
+#define SDCARD_INSERTED (bit_is_clear(SD_CD_PIN, SD_CD_BIT))
+#endif
+
 static bool find_imgfile()
 {
   if (fatfs_read_rootdir())
@@ -37,7 +45,7 @@ void handle_sdcard()
 	  PORTA = ~0;
 	}
 
-  while (bit_is_clear(SD_CD_PIN, SD_CD_BIT)) {
+  while (SDCARD_INSERTED) {
     service_ide();
     service_cdda();
   }
@@ -68,7 +76,7 @@ int main()
 
     service_ide();
 
-    if (bit_is_clear(SD_CD_PIN, SD_CD_BIT))
+    if (SDCARD_INSERTED)
       handle_sdcard();
   }
 
