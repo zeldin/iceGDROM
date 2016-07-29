@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:Molex_52602_0579
 LIBS:spxo
 LIBS:+3v3_fpga
 LIBS:power
