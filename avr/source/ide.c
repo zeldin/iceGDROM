@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 
 #include "hardware.h"
 #include "debug.h"
