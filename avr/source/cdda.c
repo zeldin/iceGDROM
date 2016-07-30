@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "config.h"
+
 #include "debug.h"
 #include "cdda.h"
 #include "hardware.h"

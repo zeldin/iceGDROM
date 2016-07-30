@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
+#include "config.h"
+
 #include "sdcard.h"
 #include "fatfs.h"
 #include "debug.h"

@@ -4,6 +4,8 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 
+#include "config.h"
+
 #include "hardware.h"
 #include "debug.h"
 #include "fatfs.h"

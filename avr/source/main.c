@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <avr/interrupt.h>
 
+#include "config.h"
+
 #include "hardware.h"
 #include "debug.h"
 #include "delay.h"
@@ -11,8 +13,6 @@
 #include "fatfs.h"
 #include "imgfile.h"
 #include "timer.h"
-
-#include "config.h"
 
 #if SD_CD_PIN_ACTIVE_HIGH
 #define SDCARD_INSERTED (bit_is_set(SD_CD_PIN, SD_CD_BIT))

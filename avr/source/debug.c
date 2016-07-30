@@ -1,10 +1,11 @@
 #include <stdint.h>
 
+#include "config.h"
+
 #include "hardware.h"
 #include "debug.h"
 
 #define CLKRATE 16934400
-#define BAUDRATE 115200
 
 #ifndef NDEBUG
 

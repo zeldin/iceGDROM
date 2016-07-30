@@ -6,3 +6,17 @@
 #define SD_CD_PIN_ACTIVE_HIGH 0
 
 
+/* Comment out to enable debug printouts on serial port */
+
+#define NDEBUG
+
+
+/* Uncomment to get extra IDE debug */
+
+/* #define IDEDEBUG */
+
+
+/* Set to desired baudrate for serial debug output */
+
+#define BAUDRATE 115200
+

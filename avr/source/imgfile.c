@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "config.h"
+
 #include "imgfile.h"
 #include "fatfs.h"
 #include "hardware.h"

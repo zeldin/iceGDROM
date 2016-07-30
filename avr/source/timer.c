@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <avr/interrupt.h>
 
+#include "config.h"
+
 #include "hardware.h"
 #include "timer.h"
 

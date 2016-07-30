@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "config.h"
+
 #include "hardware.h"
 #include "debug.h"
 #include "delay.h"
