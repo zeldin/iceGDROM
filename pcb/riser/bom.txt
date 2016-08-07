@@ -1,0 +1,21 @@
+Quantity  Designation  Description                   Mouser SKU
+========  ===========  ============================  =======================
+1         -            iCE40-HX8K breakout board     842-ICE40HX8K-B-EVN
+2         CN2, CN3     20x2 socket header            517-929975-01-20
+2         J3, J4       20x2 pin header               517-929836-01-20
+1         CN6          USB A female                  571-292303-3
+4         -            11mm spacer                   761-M0540-3-N
+4         -            M3 nylon hex nut              534-4688
+4         -            M3 nylon screw 16mm           534-29346
+1         X1           11.2896MHz oscillator         732-SG210STF11.289S3
+1         C1           0.1uF capacitor               581-CB018B0103J
+1         CN1          Molex 52602-0579 connector    538-52602-0579
+1         CN5          9 pin header                  517-9611096804AR
+4         JP1-JP4      3 pin header                  517-9611036804AR
+4         -            Jumper                        571-28815452
+5         R2-R6        100 Ohm resistor              603-MFR-25FRF52100R
+2         R1, R7       10k Ohm resistor              603-MFR-25FRF5210K
+1         CN4          22x2 pin header               517-951244-8622-AR
+1         D1           LED 3mm 1.9V 2mA              604-WP710A10LGD
+1         R8           1k Ohm resistor               603-MFR-25FRF521K
+
