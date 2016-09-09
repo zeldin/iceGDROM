@@ -28,6 +28,8 @@ flash : gdrom_hw_emulator.bin
 
 upload :
 
+tests :
+
 
 .SECONDARY:
 

@@ -17,6 +17,9 @@ flash :
 upload :
 
 
+tests : makegdimg
+
+
 makegdimg: $(OBJ)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 

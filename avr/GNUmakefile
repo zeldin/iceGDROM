@@ -26,6 +26,8 @@ flash : pmem_high.hex pmem_low.hex
 upload : avr_main.hex
 	avrdude -c butterfly_mk -p ucr2 -b 115200 $(if $(AVRDUDE_PORT),-P,) $(AVRDUDE_PORT) -U flash:w:$<
 
+tests :
+
 .SECONDARY:
 
 avr_main.elf: $(OBJ)
