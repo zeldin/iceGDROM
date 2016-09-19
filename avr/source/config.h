@@ -20,3 +20,8 @@
 
 #define BAUDRATE 115200
 
+
+/* Comment out to disable subchannel Q emulation */
+
+#define CDDA_SUBCHANNEL_Q
+

@@ -20,6 +20,7 @@ static uint8_t cdda_subframe;
 static uint32_t cdda_start_blk, cdda_end_blk, cdda_blk, cdda_next_track;
 static uint8_t cdda_repeat;
 
+#ifdef CDDA_SUBCHANNEL_Q
 static void advance_msf(uint8_t *p)
 {
   if ((p[2]&0xf) == 9) {
@@ -64,13 +65,16 @@ static void set_msf(uint8_t *p, uint32_t blk)
   p[1] = tobcd(s);
   p[2] = tobcd(f);
 }
+#endif
 
 static void setup_subchannel_q()
 {
+#ifdef CDDA_SUBCHANNEL_Q
   cdda_subcode_q[1] = 0xaa;
   cdda_subcode_q[2] = 0x01;
   set_msf(&cdda_subcode_q[3], 0);
   set_msf(&cdda_subcode_q[7], cdda_blk);
+#endif
 
   uint8_t tr;
   uint8_t emph = 0;
@@ -96,8 +100,10 @@ static void setup_subchannel_q()
 	cdda_next_track = u.fad;
 	break;
       }
+#ifdef CDDA_SUBCHANNEL_Q
       cdda_subcode_q[1] = tobcd(tr);
       set_msf(&cdda_subcode_q[3], cdda_blk - u.fad);
+#endif
       emph = e->ctrl_adr & 0x10;
     }
   if (emph)
@@ -118,8 +124,10 @@ static bool cdda_fill_buffer()
   if ((cdda_subframe += (512/16)) >= (2352/16)) {
     cdda_subframe -= (2352/16);
     /* Advance sector # */
+#ifdef CDDA_SUBCHANNEL_Q
     advance_msf(&cdda_subcode_q[3]);
     advance_msf(&cdda_subcode_q[7]);
+#endif
     cdda_blk++;
     if (cdda_blk == cdda_next_track) {
       setup_subchannel_q();
