@@ -48,7 +48,7 @@ $(PM_FAKE_FILES): pmem_%.hex.fake :
 	cat $< $(foreach bramfile,$($*_BRAM_FILES),| icebram $(notdir $(bramfile)).fake $(bramfile)) > $@
 
 %.txt_nobram : %.blif $$($$*_CONSTRAINT_FILE)
-	arachne-pnr -s 42 -d $($*_DEVICE) -p $($*_CONSTRAINT_FILE) -o $@ $<
+	arachne-pnr -s 1337 -d $($*_DEVICE) -p $($*_CONSTRAINT_FILE) -o $@ $<
 
 %.blif : $$($$*_SCRIPT) $$($$*_EXTRA_DEPS) $$(shell find "$(SRC)" -name '*.v' -o -name '*.vh')
 	cd "$(SRC)" && yosys -b 'blif -gates -attr -param' -o "$(CURDIR)"/$@ $(foreach def,$($*_VERILOG_DEFS),$(call add-verilog-define,$(def))) -p 'script $(<F)'

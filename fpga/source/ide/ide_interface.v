@@ -83,11 +83,13 @@ module ide_interface (
    wire        rst;
 
    reg [8:0]   buffer_read_addr, buffer_write_addr;
-   wire [15:0] buffer_read_data;
+   wire [15:0] buffer_read_data, buffer_read_data_a, buffer_read_data_b;
    reg [15:0]  buffer_write_data;
    reg         buffer_write_hi, buffer_write_lo;
 
    reg [7:0]   busctl_old, busctl_cur;
+
+   assign buffer_read_data = (buffer_read_addr[8]? buffer_read_data_b : buffer_read_data_a);
 
    always @(posedge clk) begin
       if (rst) begin
@@ -416,13 +418,21 @@ module ide_interface (
        end
    end
 
-   ide_data_buffer buffer_inst(.clk(clk), .rst(rst),
-			       .read_addr(buffer_read_addr),
-			       .read_data(buffer_read_data),
-			       .write_addr(buffer_write_addr),
-			       .write_data(buffer_write_data),
-			       .write_hi(buffer_write_hi),
-			       .write_lo(buffer_write_lo));
+   ide_data_buffer buffer_inst_a(.clk(clk), .rst(rst),
+				 .read_addr(buffer_read_addr),
+				 .read_data(buffer_read_data_a),
+				 .write_addr(buffer_write_addr),
+				 .write_data(buffer_write_data),
+				 .write_hi(buffer_write_hi&~buffer_write_addr[8]),
+				 .write_lo(buffer_write_lo&~buffer_write_addr[8]));
+
+   ide_data_buffer buffer_inst_b(.clk(clk), .rst(rst),
+				 .read_addr(buffer_read_addr),
+				 .read_data(buffer_read_data_b),
+				 .write_addr(buffer_write_addr),
+				 .write_data(buffer_write_data),
+				 .write_hi(buffer_write_hi&buffer_write_addr[8]),
+				 .write_lo(buffer_write_lo&buffer_write_addr[8]));
 
    ide_reset_generator reset_inst(.rst_in(reset_in), .clk(clk), .rst_out(rst));
 

@@ -1,14 +1,14 @@
 module ide_data_buffer(input clk,
 		       input rst,
-		       input[8:0] read_addr,
+		       input[7:0] read_addr,
 		       output[15:0] read_data,
-		       input[8:0] write_addr,
+		       input[7:0] write_addr,
 		       input[15:0] write_data,
 		       input write_hi,
 		       input write_lo
 		       );
 
-   reg [15:0] ram_data[511:0];
+   reg [15:0] ram_data[255:0];
    reg [15:0] data_latch;
 
    assign read_data = data_latch;
