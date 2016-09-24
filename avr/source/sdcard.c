@@ -263,10 +263,10 @@ static void sd_xfer_block_hw()
 
 static void __inline sd_xfer_block(uint8_t *ptr)
 {
-  if (((uint8_t)(ADDR_HIGH(ptr)&0xfe)) == ADDR_HIGH(IDE_DATA_BUFFER)) {
-    IDE_IOCONTROL = 0x08;
+  if (((uint8_t)(ADDR_HIGH(ptr)&0xfc)) == ADDR_HIGH(IDE_DATA_BUFFER)) {
+    IDE_IOCONTROL = ADDR_HIGH(ptr)&0x46;
     sd_xfer_block_hw();
-    IDE_IOCONTROL = 0x00;
+    IDE_IOCONTROL = 0x40;
   } else if (((uint8_t)(ADDR_HIGH(ptr)&0xfc)) == ADDR_HIGH(CDDA_DATA_BUFFER)) {
     CDDA_CONTROL = (CDDA_CONTROL & ~0xe)|4|(uint8_t)((ADDR_HIGH(ptr)&2)<<2);
     sd_xfer_block_hw();

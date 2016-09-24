@@ -82,7 +82,7 @@ module ide_interface (
    
    wire        rst;
 
-   reg [7:0]   buffer_read_addr, buffer_write_addr;
+   reg [8:0]   buffer_read_addr, buffer_write_addr;
    wire [15:0] buffer_read_data;
    reg [15:0]  buffer_write_data;
    reg         buffer_write_hi, buffer_write_lo;
@@ -153,11 +153,15 @@ module ide_interface (
    wire      pio_mode;
    wire      dma_mode;
    wire      sdcard_dma_mode;
+   wire      sdcard_dma_bank;
+   wire      active_bank;
    assign    bsy = status_q[7];
    assign drv_selected = (drvhead_q[4] == drv);
    assign pio_mode = iocontrol_q[1];
    assign dma_mode = iocontrol_q[2];
-   assign sdcard_dma_mode = iocontrol_q[3];
+   assign sdcard_dma_bank = iocontrol_q[5];
+   assign sdcard_dma_mode = iocontrol_q[6];
+   assign active_bank = iocontrol_q[7];
    assign cpu_irq = (srst_q | hrst_q | cmd_q | data_q) & ~rst;
 
    assign intrq_enabled = (~nien_q) & drv_selected;
@@ -282,8 +286,14 @@ module ide_interface (
 	   4'b0100: status_d = sram_d_in;
 	   4'b0001: error_d = sram_d_in;
 	   4'b0010: begin
-	      iocontrol_d = sram_d_in;
-	      dmarq_d = sram_d_in[2];
+	      if (sram_d_in[7])
+		iocontrol_d[7] = ~iocontrol_q[7];
+	      else if (sram_d_in[6])
+		iocontrol_d[6:4] = sram_d_in[2:0];
+	      else begin
+		 iocontrol_d[3:0] = sram_d_in[3:0];
+		 dmarq_d = sram_d_in[2];
+	      end
 	   end
 	   4'b0011: iopos_d = sram_d_in;
 	   4'b0101: iotarget_d = sram_d_in;
@@ -383,26 +393,26 @@ module ide_interface (
 	 /* Bus writes, AVR reads */
 	 buffer_write_hi = bus_data_write;
 	 buffer_write_lo = bus_data_write;
-	 buffer_write_addr = iopos_q;
+	 buffer_write_addr = {active_bank, iopos_q};
 	 buffer_write_data = dd_in;
 
-	 buffer_read_addr = sram_a[8:1];
+	 buffer_read_addr = {sram_a[9]^active_bank, sram_a[8:1]};
        end else if(sdcard_dma_mode) begin
 	 /* Bus reads, SDCARD writes */
 	 buffer_write_hi = sdcard_dma_strobe & sdcard_dma_addr[0];
 	 buffer_write_lo = sdcard_dma_strobe & ~sdcard_dma_addr[0];
-	 buffer_write_addr = sdcard_dma_addr[8:1];
+	 buffer_write_addr = {sdcard_dma_bank^active_bank, sdcard_dma_addr[8:1]};
 	 buffer_write_data = {sdcard_dma_data, sdcard_dma_data};
 
-	 buffer_read_addr = iopos_q;
+	 buffer_read_addr = {active_bank, iopos_q};
        end else begin
 	 /* Bus reads, AVR writes */
 	 buffer_write_hi = avr_data_write & sram_a[0];
 	 buffer_write_lo = avr_data_write & ~sram_a[0];
-	 buffer_write_addr = sram_a[8:1];
+	 buffer_write_addr = {sram_a[9]^active_bank, sram_a[8:1]};
 	 buffer_write_data = {sram_d_in, sram_d_in};
 
-	 buffer_read_addr = iopos_q;
+	 buffer_read_addr = {active_bank, iopos_q};
        end
    end
 

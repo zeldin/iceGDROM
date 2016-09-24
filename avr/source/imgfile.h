@@ -47,9 +47,10 @@ extern struct toc toc[2];
 
 extern uint8_t imgfile_data_offs;
 extern uint8_t imgfile_data_len;
+extern bool imgfile_need_to_read;
 
 extern bool imgfile_init();
-extern bool imgfile_read_next_sector();
+extern bool imgfile_read_next_sector(uint8_t *ptr);
 extern bool imgfile_read_next_sector_cdda(uint8_t index);
 extern bool imgfile_seek(uint32_t sec, uint8_t mode);
 extern bool imgfile_seek_cdda(uint32_t sec);

@@ -29,6 +29,12 @@ static uint8_t service_dma;
 static uint16_t service_sectors_left;
 static uint8_t disk_type = 0xff;
 
+#define PRELOAD_NONE      0
+#define PRELOAD_AVAILABLE 1
+#define PRELOAD_FAILED    2
+
+static uint8_t preload_status;
+
 static union {
   uint8_t cmd;
   uint8_t data[12];
@@ -459,7 +465,9 @@ static void service_cd_read_cont()
     service_finish_packet(0);
     return;
   }
-  if (!imgfile_read_next_sector()) {
+  if (preload_status == PRELOAD_AVAILABLE) {
+    IDE_IOCONTROL = 0x80;
+  } else if (preload_status == PRELOAD_FAILED || !imgfile_read_next_sector(&IDE_DATA_BUFFER[0])) {
 #ifdef IDEDEBUG
     DEBUG_PUTS("READ ERROR]\n");
 #endif
@@ -487,6 +495,13 @@ static void service_cd_read_cont()
   } else {
     service_packet_data_last(len, offs);
   }
+  if (service_sectors_left && imgfile_need_to_read) {
+    if (imgfile_read_next_sector(&IDE_DATA_BUFFER[512]))
+      preload_status = PRELOAD_AVAILABLE;
+    else
+      preload_status = PRELOAD_FAILED;
+  } else
+    preload_status = PRELOAD_NONE;
 }
 
 static void service_cd_read()
@@ -505,6 +520,7 @@ static void service_cd_read()
   DEBUG_PUTX(packet.cd_read.transfer_length[2]);
   DEBUG_PUTC(']');
 #endif
+  preload_status = PRELOAD_NONE;
   service_sectors_left = ((packet.cd_read.transfer_length[1]<<8)|packet.cd_read.transfer_length[2]);
   uint32_t blk = get_fad(packet.cd_read.start_addr, packet.cd_read.flags&1);
   if (!imgfile_seek(blk, packet.cd_read.flags)) {
@@ -590,6 +606,7 @@ static void service_cd_scd()
 
 static void service_reset()
 {
+  preload_status = PRELOAD_NONE;
   cdda_stop();
 }
 

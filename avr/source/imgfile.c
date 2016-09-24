@@ -19,7 +19,7 @@ uint8_t imgfile_data_offs;
 uint8_t imgfile_data_len;
 static uint8_t imgfile_skip_before, imgfile_skip_after;
 static uint16_t imgfile_sector_size, imgfile_sector_completed;
-static bool imgfile_need_to_read;
+bool imgfile_need_to_read;
 
 bool imgfile_init()
 {
@@ -37,7 +37,7 @@ bool imgfile_init()
   return true;
 }
 
-bool imgfile_read_next_sector()
+bool imgfile_read_next_sector(uint8_t *ptr)
 {
   if (!imgfile_sector_completed) {
     if (imgfile_skip_before > (uint8_t)~imgfile_data_offs) {
@@ -48,7 +48,7 @@ bool imgfile_read_next_sector()
     imgfile_data_offs += imgfile_skip_before;
   }
   if (imgfile_need_to_read) {
-    if (!fatfs_read_next_sector(&read_handle, &IDE_DATA_BUFFER[0]))
+    if (!fatfs_read_next_sector(&read_handle, ptr))
       return false;
     imgfile_need_to_read = false;
   }
