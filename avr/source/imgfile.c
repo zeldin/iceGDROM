@@ -37,16 +37,18 @@ bool imgfile_init()
   return true;
 }
 
+static void imgfile_adjust_sector_start()
+{
+  if (imgfile_skip_before > (uint8_t)~imgfile_data_offs) {
+    if (imgfile_need_to_read)
+      fatfs_read_next_sector(&read_handle, 0);
+    imgfile_need_to_read = true;
+  }
+  imgfile_data_offs += imgfile_skip_before;
+}
+
 bool imgfile_read_next_sector(uint8_t *ptr)
 {
-  if (!imgfile_sector_completed) {
-    if (imgfile_skip_before > (uint8_t)~imgfile_data_offs) {
-      if (imgfile_need_to_read)
-	fatfs_read_next_sector(&read_handle, 0);
-      imgfile_need_to_read = true;
-    }
-    imgfile_data_offs += imgfile_skip_before;
-  }
   if (imgfile_need_to_read) {
     if (!fatfs_read_next_sector(&read_handle, ptr))
       return false;
@@ -74,6 +76,7 @@ bool imgfile_sector_complete()
       imgfile_need_to_read = true;
     }
     imgfile_data_offs += imgfile_skip_after;
+    imgfile_adjust_sector_start();
     return true;
   }
   return false;
@@ -162,6 +165,7 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     imgfile_skip_after = skip_after;
     imgfile_need_to_read = true;
     imgfile_sector_completed = 0;
+    imgfile_adjust_sector_start();
   } else {
     cdda_subcode_q[0] = (rmode<<4)|1;
     cdda_toc = rmode & 0x80;
