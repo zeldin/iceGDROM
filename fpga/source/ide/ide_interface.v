@@ -15,7 +15,7 @@ module ide_interface (
 		      input       reset_,
 		      input       csel,
 		      input       clk,
-		      input[9:0]  sram_a,
+		      input[10:0]  sram_a,
 		      input[7:0]  sram_d_in,
 		      output[7:0] sram_d_out,
 		      input       sram_cs,
@@ -168,7 +168,7 @@ module ide_interface (
 
    generate
       if(add_read_ws) begin : read_ws_is_added
-	 assign sram_wait = sram_cs & sram_oe & sram_a[9] & !sram_wait_q;
+	 assign sram_wait = sram_cs & sram_oe & sram_a[10] & !sram_wait_q;
 	 reg sram_wait_q;
 	 always @(posedge clk) begin
 	    sram_wait_q <= sram_wait;
@@ -200,7 +200,7 @@ module ide_interface (
    end
 
    always @(*) begin
-      if (sram_a[9]) begin
+      if (sram_a[10]) begin
 	 if (sram_a[0])
 	   sram_d = buffer_read_data[15:8];
 	 else
@@ -273,7 +273,7 @@ module ide_interface (
       if (dma_mode & ~old_dmack & ~cur_dior & (iopos_q == iotarget_q)) begin
 	 dmarq_d = 1'b0; /* Last word, so negate DMARQ */
       end
-      if (sram_cs & sram_we & ~sram_a[9]) begin
+      if (sram_cs & sram_we & ~sram_a[10]) begin
 	 case (sram_a[3:0])
 	   4'b0000: begin
 	      status_d = sram_d_in;
@@ -303,7 +303,7 @@ module ide_interface (
 	 endcase
       end
       if (bsy) begin
-	 if (sram_cs & sram_we & ~sram_a[9]) begin
+	 if (sram_cs & sram_we & ~sram_a[10]) begin
 	    case (sram_a[3:0])
 	      4'b1001: features_d = sram_d_in;
 	      4'b1010: seccnt_d = sram_d_in;
@@ -376,7 +376,7 @@ module ide_interface (
 
    wire bus_data_write, avr_data_write;
    assign bus_data_write = write_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & pio_mode;
-   assign avr_data_write = sram_cs & sram_we & sram_a[9];
+   assign avr_data_write = sram_cs & sram_we & sram_a[10];
 
    always @(*) begin
       if (iocontrol_q[0]) begin

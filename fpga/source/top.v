@@ -72,9 +72,9 @@ module top (
    wire       avr_reset;
 
    assign cs_gate = ~clkout_cpu&~clkout_cpu2;
-   assign sram_cs_ide = sram_cs & ~sram_a[11] & ~sram_a[10] & cs_gate;
-   assign sram_cs_sdcard = sram_cs & ~sram_a[11] & sram_a[10] & cs_gate;
-   assign sram_cs_cdda = sram_cs & sram_a[11] & cs_gate;
+   assign sram_cs_ide = sram_cs & sram_a[12] & cs_gate;
+   assign sram_cs_sdcard = sram_cs & ~sram_a[12] & ~sram_a[11] & cs_gate;
+   assign sram_cs_cdda = sram_cs & ~sram_a[12] & sram_a[11] & cs_gate;
 
    generate
       if(REFCLK_FREQ != CPU_FREQ*4) begin : use_clkgen
@@ -137,7 +137,7 @@ module top (
    avr #(.pm_size(4),
 	 .dm_size(4),
 	 .sram_address(16'hE000),
-	 .sram_size(4096),
+	 .sram_size(8192),
 	 .impl_avr109(1),
 	 .sdcard_spi(1),
 	 .CLK_FREQUENCY(CPU_FREQ),
@@ -156,10 +156,10 @@ module top (
 	      .sdcard_miso(sdcard_miso), .rxd(RXD), .txd(TXD),
 	      .m_scl(), .m_sda(), .s_scl(), .s_sda(),
 	      .sram_a(sram_a),
-	      .sram_d_in(sram_a[11]? d_from_cdda : (sram_a[10]? d_from_sdcard : d_from_ide)),
+	      .sram_d_in(sram_a[12]? d_from_ide : (sram_a[11]? d_from_cdda : d_from_sdcard)),
 	      .sram_d_out(d_to_ide_or_cdda_or_sdcard),
 	      .sram_cs(sram_cs), .sram_oe(sram_oe), .sram_we(sram_we),
-	      .sram_wait(sram_a[11]? sram_wait_cdda : (sram_a[10]? sram_wait_sdcard : sram_wait_ide)),
+	      .sram_wait(sram_a[12]? sram_wait_ide : (sram_a[11]? sram_wait_cdda : sram_wait_sdcard)),
 	      .ext_irq1(ide_irq_sync));
 
 endmodule // top
