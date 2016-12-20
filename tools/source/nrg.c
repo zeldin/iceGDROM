@@ -127,6 +127,9 @@ static bool nrg_parse_daox(FILE *f, const char *fn, uint32_t len)
     case 0x0000:
       type = TRACK_MODE_1_2048;
       break;
+    case 0x0200:
+      type = TRACK_XA_FORM_1_2048;
+      break;
     case 0x0300:
       type = TRACK_MODE_2_2336;
       break;
