@@ -24,11 +24,17 @@ static uint8_t from_bcd(uint8_t n)
   return (n>>4)*10+(n&15);
 }
 
-static bool nrg_parse_cuex(FILE *f, const char *fn, uint32_t len)
+static uint32_t get_msf(const uint8_t *p)
+{
+  uint32_t s = from_bcd(p[0])*60 + from_bcd(p[1]);
+  return s*75 + from_bcd(p[2]);
+}
+
+static bool nrg_parse_cuesx(FILE *f, const char *fn, uint32_t len, bool x)
 {
   uint32_t lead_out;
   if (len < 16 || (len&15)) {
-    msg_error("Invalid CUEX length\n");
+    msg_error("Invalid CUE%c length\n", (x? 'X' : 'S'));
     return false;
   }
   len >>= 3;
@@ -40,16 +46,16 @@ static bool nrg_parse_cuex(FILE *f, const char *fn, uint32_t len)
     }
     if (n == 0) {
       if (entry[1] != 0x00 || entry[2] != 0x00) {
-	msg_error("Incorrect header of CUEX chunk\n");
+	msg_error("Incorrect header of CUE%c chunk\n", (x? 'X' : 'S'));
 	return false;
       }
     } else if (n == len-1) {
       if (entry[1] != 0xaa || entry[2] != 0x01) {
-	msg_error("Incorrect footer of CUEX chunk\n");
+	msg_error("Incorrect footer of CUE%c chunk\n", (x? 'X' : 'S'));
 	return false;
       }
     }
-    uint32_t lba = get_be32(entry+4)+150;
+    uint32_t lba = (x? get_be32(entry+4)+150 : get_msf(entry+5));
     if (entry[2] == 1) {
       if (entry[1] == 0xaa)
 	lead_out = lba;
@@ -66,11 +72,10 @@ static bool nrg_parse_cuex(FILE *f, const char *fn, uint32_t len)
   return true;
 }
 
-static bool nrg_parse_daox(FILE *f, const char *fn, uint32_t len)
+static bool nrg_parse_daoix(FILE *f, const char *fn, uint32_t len, bool x)
 {
-  if (len < 22 || (len-22)%42) {
-    msg_error("Invalid DAOX length\n");
-    return false;
+  if (len < 22 || (len-22)%(x?42:30)) {
+    msg_error("Invalid DAO%c length\n", (x? 'X' : 'I'));
   }
   uint8_t entry[42];
   if (fread(entry, 1, 22, f) != 22) {
@@ -78,34 +83,34 @@ static bool nrg_parse_daox(FILE *f, const char *fn, uint32_t len)
     return false;
   }
   len -= 22;
-  len /= 42;
+  len /= (x? 42 : 30);
   uint8_t first_track = entry[20], last_track = entry[21];
   if (last_track < first_track || len != last_track-first_track+1) {
-    msg_error("Invalid length of DAOX chunk\n");
+    msg_error("Invalid length of DAO%c chunk\n", (x? 'X' : 'I'));
     return false;
   }
   struct track *t = track_get_first();
   while (len > 0) {
-    if (fread(entry, 1, 42, f) != 42) {
+    if (fread(entry, 1, (x? 42 : 30), f) != (x? 42 : 30)) {
       msg_perror(fn);
       return false;
     }
     while (t != NULL && t->track_nr != first_track)
       t = t->next;
     if (t == NULL) {
-      msg_error("Found DAOX entry for non-existring track %u\n",
-		(unsigned)first_track);
+      msg_error("Found DAO%c entry for non-existring track %u\n",
+		(x? 'X' : 'I'), (unsigned)first_track);
       return false;
     }
     uint16_t secsize = get_be16(entry+12);
     uint16_t mode = get_be16(entry+14);
     uint16_t unk = get_be16(entry+16);
-    uint32_t i0_hi = get_be32(entry+18);
-    uint32_t i0_lo = get_be32(entry+22);
-    uint32_t i1_hi = get_be32(entry+26);
-    uint32_t i1_lo = get_be32(entry+30);
-    uint32_t e_hi = get_be32(entry+34);
-    uint32_t e_lo = get_be32(entry+38);
+    uint32_t i0_hi = (x? get_be32(entry+18) : 0);
+    uint32_t i0_lo = (x? get_be32(entry+22) : get_be32(entry+18));
+    uint32_t i1_hi = (x? get_be32(entry+26) : 0);
+    uint32_t i1_lo = (x? get_be32(entry+30) : get_be32(entry+22));
+    uint32_t e_hi = (x? get_be32(entry+34) : 0);
+    uint32_t e_lo = (x? get_be32(entry+38) : get_be32(entry+26));
     if (i0_hi || i1_hi || e_hi) {
       msg_error("Unexpected 64-bit value in DAOX\n");
       return false;
@@ -178,15 +183,22 @@ static int nrg_parse_sinf(FILE *f, const char *fn, uint32_t len, uint8_t nr, int
 static bool nrg_check_footer(FILE *f, uint32_t *offp)
 {
   uint8_t buf[12];
+  uint32_t off_hi;
+  uint32_t off_lo;
+
   if (fseek(f, -12, SEEK_END) < 0 ||
       fread(buf, 1, 12, f) != 12)
     return false;
 
-  if (memcmp(buf, "NER5", 4))
+  if (!memcmp(buf, "NER5", 4)) {
+    off_hi = get_be32(buf+4);
+    off_lo = get_be32(buf+8);
+  } else if(!memcmp(buf+4, "NERO", 4)) {
+    off_hi = 0;
+    off_lo = get_be32(buf+8);
+  } else
     return false;
 
-  uint32_t off_hi = get_be32(buf+4);
-  uint32_t off_lo = get_be32(buf+8);
   if (off_hi || !off_lo)
     return false;
   if (offp)
@@ -230,15 +242,19 @@ bool nrg_parse_and_add_tracks(FILE *f, const char *fn)
     }
     switch(get_be32(chdr)) {
     case CHUNK_ID('C','U','E','S'):
+      if (!nrg_parse_cuesx(f, fn, chunklen, false))
+	return false;
+      break;
     case CHUNK_ID('D','A','O','I'):
-      msg_error("CUES/DAOI chunk not supported");
-      return false;
+      if (!nrg_parse_daoix(f, fn, chunklen, false))
+	return false;
+      break;
     case CHUNK_ID('C','U','E','X'):
-      if (!nrg_parse_cuex(f, fn, chunklen))
+      if (!nrg_parse_cuesx(f, fn, chunklen, true))
 	return false;
       break;
     case CHUNK_ID('D','A','O','X'):
-      if (!nrg_parse_daox(f, fn, chunklen))
+      if (!nrg_parse_daoix(f, fn, chunklen, true))
 	return false;
       break;
     case CHUNK_ID('S','I','N','F'):
