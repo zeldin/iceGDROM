@@ -77,7 +77,7 @@ Making image files
 Building the project will also create a host tool in `tools/obj/makegdimg`
 which can create image files from either `.gdi` files (for GD-ROM images)
 or from `.nrg` files (for MIL-CD and audio CD images).  The image files
-should be named `DISC0000.GI0`, `DISC0001.GIO0` etc on the SD Card.
+should be named `DISC0000.GI0`, `DISC0001.GI0` etc on the SD Card.
 To switch between images, extract and reinsert the SD Card.
 
 
