@@ -7,6 +7,7 @@
 #include "track.h"
 #include "nrg.h"
 #include "gdi.h"
+#include "cdi.h"
 #include "imgfile.h"
 
 static struct {
@@ -16,6 +17,7 @@ static struct {
   bool (*parse_and_add_tracks)(FILE*, const char *);
 } formats[] = {
   { "Nero", true, nrg_check_file, nrg_parse_and_add_tracks },
+  { "DiscJuggler", true, cdi_check_file, cdi_parse_and_add_tracks },
   { "GDI", false, gdi_check_file, gdi_parse_and_add_tracks },
 };
 

@@ -76,9 +76,9 @@ Making image files
 
 Building the project will also create a host tool in `tools/obj/makegdimg`
 which can create image files from either `.gdi` files (for GD-ROM images)
-or from `.nrg` files (for MIL-CD and audio CD images).  The image files
-should be named `DISC0000.GI0`, `DISC0001.GI0` etc on the SD Card.
-To switch between images, extract and reinsert the SD Card.
+or from `.nrg` or `.cdi` files (for MIL-CD and audio CD images).  The
+image files should be named `DISC0000.GI0`, `DISC0001.GI0` etc on the
+SD Card.  To switch between images, extract and reinsert the SD Card.
 
 
 Acknowledgements
@@ -87,6 +87,7 @@ Acknowledgements
 * AVR softcore was developed by Ruslan Lepetenok
 * GD-ROM connector pinout was provided by OzOnE
 * SD Card and FAT code based on sdfatlib by Bill Greiman
+* DiscJuggler reader code based on CDIrip by DeXT/Lawrence Williams
 
 
 [1]: http://mc.pp.se/dc/gdromemu.html
