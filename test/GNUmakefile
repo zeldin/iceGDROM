@@ -2,9 +2,9 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-SOURCES_C = main.c cdops.c
+SOURCES_C = main.c cdops.c pseudorandom.c
 SOURCES_S = video.s syscall.s
-SOURCES_TEST = benchmark.c
+SOURCES_TEST = benchmark.c dmatest.c
 
 OBJ = $(SOURCES_C:%.c=%.o) $(SOURCES_S:%.s=%.o)
 OBJ_TEST = $(SOURCES_TEST:%.c=%.o)
@@ -24,26 +24,28 @@ flash :
 upload :
 
 
-tests : BENCHMARK.GI0
-
+tests : BENCHMARK.GI0 DMATEST.GI0
 
 BENCHMARK.GI0 : benchmark.gdi benchmark.isoa benchmark.isob testdata.bin dummydata.bin
 	$(TOOLS_DIR)/makegdimg $< $@
 
-benchmark.gdi :
-	( echo 4; echo 1 0 4 2048 dummydata.bin 0; echo 2 45000 4 2048 benchmark.isoa 0; echo 3 450016 4 2048 benchmark.isob 0; echo 4 500000 4 2048 testdata.bin 0 ) >$@
+DMATEST.GI0 : dmatest.gdi dmatest.isoa dmatest.isob testdata.bin dummydata.bin
+	$(TOOLS_DIR)/makegdimg $< $@
 
-benchmark.iso : benchmark.ip BENCHMARK.BIN
-	mkisofs -l -C 0,450000 -G benchmark.ip -o $@ BENCHMARK.BIN
+%.gdi :
+	( echo 4; echo 1 0 4 2048 dummydata.bin 0; echo 2 45000 4 2048 $*.isoa 0; echo 3 450016 4 2048 $*.isob 0; echo 4 500000 4 2048 testdata.bin 0 ) >$@
 
-benchmark.ip : $(SRC)/benchmark.txt
+%.iso : %.ip %.bin
+	mkisofs -l -C 0,450000 -G $*.ip -o $@ $*.bin
+
+%.ip : $(SRC)/%.txt
 	makeip $< $@
 
-BENCHMARK.BIN : benchmark.elf
+%.bin : %.elf
 	sh-elf-objcopy -S -R .stack -O binary $< $@
 
-benchmark.elf : $(OBJ) crt0.o benchmark.o
-	$(SHCC) -Wl,-Ttext,0x8c010000 -nostartfiles crt0.o -o $@ $(OBJ) benchmark.o
+%.elf : %.o $(OBJ) crt0.o
+	$(SHCC) -Wl,-Ttext,0x8c010000 -nostartfiles crt0.o -o $@ $(OBJ) $*.o
 
 %.isoa : %.iso
 	dd if=$< of=$@ bs=2048 count=18
@@ -60,12 +62,14 @@ benchmark.elf : $(OBJ) crt0.o benchmark.o
 crt0.o : $(SRC)/crt0.S
 	$(SHCC) -c -x assembler-with-cpp -o $@ $<
 
-testdata.bin :
-	dd if=/dev/zero of=$@ bs=1024 count=1024
+testdata.bin : gentestdata
+	./$^ > $@
 
 dummydata.bin :
 	dd if=/dev/zero of=$@ bs=2048 count=300
 
+gentestdata : $(SRC)/pseudorandom.c $(SRC)/pseudorandom.h
+	$(CC) -o $@ -DSTANDALONE_TOOL $<
 
 -include $(OBJ:%.o=%.d) $(OBJ_TEST:%.o=%.d)
 
