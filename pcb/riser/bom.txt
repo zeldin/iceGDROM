@@ -8,7 +8,7 @@ Quantity  Designation  Description                   Mouser SKU
 4         -            M3 nylon hex nut              534-4688
 4         -            M3 nylon screw 16mm           534-29346
 1         X1           11.2896MHz oscillator         732-SG210STF11.289S3
-1         C1           0.1uF capacitor               581-CB018B0103J
+1         C1           0.01uF - 0.1uF capacitor      581-CB018B0103J
 1         CN1          Molex 52602-0579 connector    538-52602-0579
 1         CN5          9 pin header                  517-9611096804AR
 4         JP1-JP4      3 pin header                  517-9611036804AR
