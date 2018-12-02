@@ -297,6 +297,11 @@ void convert_track_swap_2352(uint8_t *sector, uint32_t adr)
   }
 }
 
+void convert_track_mode_0_2336(uint8_t *sector, uint32_t adr)
+{
+  add_header(sector, adr, 0);
+}
+
 void convert_track_mode_1_2048(uint8_t *sector, uint32_t adr)
 {
   add_header(sector, adr, 1);
@@ -347,6 +352,7 @@ static const struct {
 } formats[] = {
   [ TRACK_RAW_2352 ] = { 2352, 0, NULL },
   [ TRACK_SWAP_2352 ] = { 2352, 0, convert_track_swap_2352 },
+  [ TRACK_MODE_0_2336 ] = { 2336, 16, convert_track_mode_0_2336 },
   [ TRACK_MODE_1_2048 ] = { 2048, 16, convert_track_mode_1_2048 },
   [ TRACK_MODE_2_2336 ] = { 2336, 16, convert_track_mode_2_2336 },
   [ TRACK_XA_FORM_1_2048 ] = { 2048, 24, convert_track_xa_form_1_2048 },

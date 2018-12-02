@@ -4,6 +4,7 @@
 enum track_type {
   TRACK_RAW_2352,       /* Raw 2352 byte sector image */
   TRACK_SWAP_2352,      /* Byteswapped audio */
+  TRACK_MODE_0_2336,    /* 2336 byte Mode 0 sectors */
   TRACK_MODE_1_2048,    /* Yellow Book 2048 byte data sector */
   TRACK_MODE_2_2336,    /* 2336 byte Mode 2 sectors */
   TRACK_XA_FORM_1_2048, /* 2048 byte XA Form 1 sectors */

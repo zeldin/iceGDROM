@@ -8,6 +8,7 @@
 #include "nrg.h"
 #include "gdi.h"
 #include "cdi.h"
+#include "cdrdao.h"
 #include "imgfile.h"
 
 static struct {
@@ -19,6 +20,7 @@ static struct {
   { "Nero", true, nrg_check_file, nrg_parse_and_add_tracks },
   { "DiscJuggler", true, cdi_check_file, cdi_parse_and_add_tracks },
   { "GDI", false, gdi_check_file, gdi_parse_and_add_tracks },
+  { "cdrdao TOC", false, cdrdao_check_file, cdrdao_parse_and_add_tracks },
 };
 
 static struct imgheader imgheader;
