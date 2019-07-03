@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name +3v3_fpga)(type Legacy)(uri ${KIPRJMOD}/+3v3_fpga.lib)(options "")(descr ""))
+  (lib (name Molex_52602_0579)(type Legacy)(uri ${KIPRJMOD}/Molex_52602_0579.lib)(options "")(descr ""))
+  (lib (name spxo)(type Legacy)(uri ${KIPRJMOD}/spxo.lib)(options "")(descr ""))
+)

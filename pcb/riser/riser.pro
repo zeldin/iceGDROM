@@ -1,4 +1,4 @@
-update=Fri 29 Jul 2016 17:04:42 CEST
+update=Thu 04 Jul 2019 01:09:57 AEST
 version=1
 last_client=kicad
 [pcbnew]
@@ -28,36 +28,3 @@ version=1
 [eeschema]
 version=1
 LibDir=
-[eeschema/libraries]
-LibName1=Molex_52602_0579
-LibName2=spxo
-LibName3=+3v3_fpga
-LibName4=power
-LibName5=device
-LibName6=transistors
-LibName7=conn
-LibName8=linear
-LibName9=regul
-LibName10=74xx
-LibName11=cmos4000
-LibName12=adc-dac
-LibName13=memory
-LibName14=xilinx
-LibName15=microcontrollers
-LibName16=dsp
-LibName17=microchip
-LibName18=analog_switches
-LibName19=motorola
-LibName20=texas
-LibName21=intel
-LibName22=audio
-LibName23=interface
-LibName24=digital-audio
-LibName25=philips
-LibName26=display
-LibName27=cypress
-LibName28=siliconi
-LibName29=opto
-LibName30=atmel
-LibName31=contrib
-LibName32=valves
