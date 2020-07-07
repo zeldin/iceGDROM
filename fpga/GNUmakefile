@@ -9,7 +9,7 @@ PM_INIT_HIGH := $(PM_INIT_DIR)/pmem_high.hex
 
 PM_FAKE_FILES := $(foreach f, $(PM_INIT_LOW) $(PM_INIT_HIGH), $(notdir $(f)).fake)
 
-gdrom_hw_emulator_DEVICE := 8k
+gdrom_hw_emulator_DEVICE := --hx8k --package ct256
 gdrom_hw_emulator_CONSTRAINT_FILE := $(SRC)/top.pcf
 gdrom_hw_emulator_SCRIPT := $(SRC)/top.yosys
 
@@ -47,11 +47,11 @@ $(PM_FAKE_FILES): pmem_%.hex.fake :
 %.txt : %.txt_nobram $$($$*_BRAM_FILES)
 	cat $< $(foreach bramfile,$($*_BRAM_FILES),| icebram $(notdir $(bramfile)).fake $(bramfile)) > $@
 
-%.txt_nobram : %.blif $$($$*_CONSTRAINT_FILE)
-	arachne-pnr -s 1337 -d $($*_DEVICE) -p $($*_CONSTRAINT_FILE) -o $@ $<
+%.txt_nobram : %.json $$($$*_CONSTRAINT_FILE)
+	nextpnr-ice40 --seed 1 $($*_DEVICE) --pcf $($*_CONSTRAINT_FILE) --asc $@ --json $<
 
-%.blif : $$($$*_SCRIPT) $$($$*_EXTRA_DEPS) $$(shell find "$(SRC)" -name '*.v' -o -name '*.vh')
-	cd "$(SRC)" && yosys -b 'blif -gates -attr -param' -o "$(CURDIR)"/$@ $(foreach def,$($*_VERILOG_DEFS),$(call add-verilog-define,$(def))) -p 'script $(<F)'
+%.json : $$($$*_SCRIPT) $$($$*_EXTRA_DEPS) $$(shell find "$(SRC)" -name '*.v' -o -name '*.vh')
+	cd "$(SRC)" && yosys -b json -o "$(CURDIR)"/$@ $(foreach def,$($*_VERILOG_DEFS),$(call add-verilog-define,$(def))) -p 'script $(<F)'
 
 else
 
