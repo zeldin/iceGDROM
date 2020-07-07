@@ -163,9 +163,13 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     imgfile_data_offs = secoffs;
     imgfile_skip_before = skip_before;
     imgfile_skip_after = skip_after;
-    imgfile_need_to_read = true;
+    imgfile_need_to_read = false;
     imgfile_sector_completed = 0;
     imgfile_adjust_sector_start();
+    if (imgfile_need_to_read)
+      blk++;
+    else
+      imgfile_need_to_read = true;
   } else {
     cdda_subcode_q[0] = (rmode<<4)|1;
     cdda_toc = rmode & 0x80;
