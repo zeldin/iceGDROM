@@ -87,14 +87,16 @@ module ide_interface (
    reg [15:0]  buffer_write_data;
    reg         buffer_write_hi, buffer_write_lo;
 
-   reg [7:0]   busctl_old, busctl_cur;
+   reg [7:0]   busctl_oldold, busctl_old, busctl_cur;
 
    assign buffer_read_data = (buffer_read_addr[8]? buffer_read_data_b : buffer_read_data_a);
 
    always @(posedge clk) begin
       if (rst) begin
+	 busctl_oldold <= 8'b11111000;
 	 busctl_old <= 8'b11111000;
       end else begin
+	 busctl_oldold <= busctl_old;
 	 busctl_old <= busctl_cur;
       end
       busctl_cur <= {dmack_in,diow_in,dior_in,cs3fx_in,cs1fx_in,da_in};
@@ -103,6 +105,8 @@ module ide_interface (
    wire[2:0] bus_addr;
    wire      bus_cs1;
    wire      bus_cs3;
+   wire      oldold_dior;
+   wire      oldold_diow;
    wire      old_dior;
    wire      old_diow;
    wire      cur_dior;
@@ -112,6 +116,8 @@ module ide_interface (
    assign bus_addr = busctl_old[2:0];
    assign bus_cs1 = busctl_old[3];
    assign bus_cs3 = busctl_old[4];
+   assign oldold_dior = busctl_oldold[5];
+   assign oldold_diow = busctl_oldold[6];
    assign old_dior = busctl_old[5];
    assign old_diow = busctl_old[6];
    assign cur_dior = busctl_cur[5];
@@ -128,8 +134,8 @@ module ide_interface (
    assign ctrl_blk = (~bus_cs3)&(bus_addr[2:1]==2'b11);
    assign cmnd_blk = ~bus_cs1;
    assign dma_active = dma_mode&~cur_dmack;
-   assign write_cycle = (~old_diow)&cur_diow;
-   assign read_cycle = (~old_dior)&cur_dior;
+   assign write_cycle = (~oldold_diow)&(~old_diow)&cur_diow;
+   assign read_cycle = (~oldold_dior)&(~old_dior)&cur_dior;
 
    reg [7:0] status_d, status_q;
    reg [7:0] error_d, error_q;
