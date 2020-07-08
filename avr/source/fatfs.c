@@ -250,13 +250,16 @@ bool fatfs_read_rootdir()
 
 bool fatfs_seek(struct fatfs_handle *handle, uint32_t sector_nr)
 {
-  handle->cluster_nr = file_start_cluster;
-  handle->pos = 0;
-  while((sector_nr ^ handle->pos) >= blocks_per_cluster) {
+  uint32_t hpos = handle->pos ^ ((handle->pos&0xff)&(blocks_per_cluster-1));
+  if (hpos > sector_nr) {
+    handle->cluster_nr = file_start_cluster;
+    hpos = 0;
+  }
+  while((sector_nr ^ hpos) >= blocks_per_cluster) {
     if (handle->cluster_nr & FAT_EOC)
       break;
     handle->cluster_nr = get_fat_entry(handle->cluster_nr);
-    handle->pos += blocks_per_cluster;
+    hpos += blocks_per_cluster;
   }
   handle->pos = sector_nr;
   return true;

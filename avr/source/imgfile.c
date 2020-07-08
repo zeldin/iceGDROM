@@ -23,6 +23,8 @@ bool imgfile_need_to_read;
 
 bool imgfile_init()
 {
+  read_handle.pos = cdda_handle.pos = ~0;
+
   if (!fatfs_read_header(&imgheader, sizeof(imgheader), 0) ||
       imgheader.magic != HEADER_MAGIC ||
       imgheader.num_tocs < 1 || imgheader.num_tocs > 2)
