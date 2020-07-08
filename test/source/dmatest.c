@@ -61,14 +61,15 @@ static int check_bigbuf(int size)
   return -1;
 }
 
-static void test_dma(int size)
+static void test_dma(int size, int mode)
 {
   int tot = 0, sec = track_start;
-  printf("Testing %dM DMA reads...", size);
+  printf("Testing %dM %s reads...", size, (mode? "DMA":"PIO"));
   pseudorandom_init(PSEUDORANDOM_SEED);
   while (tot < 32) {
     int sz = (tot + size > 32?  32 - tot : size);
-    int r = cdops_read_sectors_dma(bigbuf, sec, sz<<9);
+    int r = (mode? cdops_read_sectors_dma(bigbuf, sec, sz<<9) :
+	     cdops_read_sectors_pio(bigbuf, sec, sz<<9));
     if (r < 0) {
       printf(" Read failed!\n");
       return;
@@ -97,8 +98,12 @@ void run_test()
   if (!select_track())
     return;
 
-  test_dma(14);
-  test_dma(8);
-  test_dma(3);
-  test_dma(1);
+  test_dma(14, 1);
+  test_dma(8, 1);
+  test_dma(3, 1);
+  test_dma(1, 1);
+  test_dma(14, 0);
+  test_dma(8, 0);
+  test_dma(3, 0);
+  test_dma(1, 0);
 }
