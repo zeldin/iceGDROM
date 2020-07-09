@@ -183,7 +183,7 @@ static int skip_whitespace(FILE *f)
       if (ch != '/') {
 	if (ch != EOF)
 	  ungetc(ch, f);
-	return 0;
+	return '/';
       }
       do {
 	ch = fgetc(f);
