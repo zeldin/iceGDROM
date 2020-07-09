@@ -27,7 +27,7 @@ module avr109 (
    reg [7:0] tx_data_d, tx_data_q;
    reg [4:0] state_d, state_q;
    reg [7:0] cnt_d, cnt_q;
-   reg [15:0] addr_d, addr_q;
+   reg [16:0] addr_d, addr_q;
    reg 	      prog_strobe;
    reg        prog_mode_d, prog_mode_q;
 
@@ -38,7 +38,7 @@ module avr109 (
    wire       send_ok;
 
    assign     intercept_mode = (state_q >= STATE_IDLE);
-   assign     prog_addr = {1'b0,addr_q[15:1]};
+   assign     prog_addr = addr_q[16:1];
    assign     prog_data = {rx_data,rx_data};
    assign     prog_mode = prog_mode_q;
    assign     prog_low = prog_strobe & ~addr_q[0];
@@ -220,13 +220,13 @@ module avr109 (
 
 	STATE_SET_ADDR_HI: begin
 	   if (rx_avail) begin
-	      addr_d[15:8] = rx_data;
+	      addr_d[16:9] = rx_data;
 	      state_d = STATE_SET_ADDR_LO;
 	   end
 	end
 	STATE_SET_ADDR_LO: begin
 	   if (rx_avail) begin
-	      addr_d[7:0] = rx_data;
+	      addr_d[8:0] = { rx_data, 1'b0 };
 	      state_d = STATE_ACK_CMD;
 	   end
 	end
