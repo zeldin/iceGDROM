@@ -101,8 +101,11 @@ module avr109 (
 	STATE_INACTIVE: begin
 	   cnt_d = 0;
 	   prog_mode_d = 0;
-	   if (rx_avail & (rx_data == 8'h1b))
-	     state_d = STATE_ATTACHING;
+	   if (rx_avail & (rx_data == 8'h1b)) begin
+	      state_d = STATE_ATTACHING;
+	      tx_data_d = 8'hff;
+	      tx_avail_d = 1'b1;
+	   end
 	end
 
 	STATE_ATTACHING: begin
