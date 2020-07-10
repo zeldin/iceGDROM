@@ -1,0 +1,11 @@
+Hardware ID   : SEGA SEGAKATANA
+Maker ID      : SEGA ENTERPRISES
+Device Info   : 0000 GD-ROM1/1
+Area Symbols  : JUE
+Peripherals   : E000F10
+Product No    : T0000
+Version       : 1.0
+Release Date  : 20200709
+Boot Filename : CDDATEST.BIN
+SW Maker Name : Marcus Comstedt
+Game Title    : iceGDROM CDDA test

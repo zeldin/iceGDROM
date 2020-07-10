@@ -91,6 +91,18 @@ int cdops_init_drive()
   return gdGdcChangeDataType(param);
 }
 
+int cdops_set_audio_read_mode()
+{
+  unsigned int param[4];
+
+  param[0] = 0; /* set data type */
+  param[1] = 4096;
+  param[2] = 512;
+  param[3] = 2352;
+
+  return gdGdcChangeDataType(param);
+}
+
 int cdops_read_toc(struct TOC *toc, int session)
 {
   struct { int session; void *buffer; } param;
@@ -117,6 +129,21 @@ int cdops_read_sectors_dma(char *buf, int sec, int num)
   param.buffer = buf;
   param.dunno = 0;
   return cdops_exec_cmd(17, &param);
+}
+
+int cdops_play_cdda_sectors(int start, int stop, int reps)
+{
+  struct { int start, stop, reps, dunno; } param;
+  param.start = start;
+  param.stop = stop;
+  param.reps = reps;
+  param.dunno = 0;
+  return cdops_exec_cmd(21, &param);
+}
+
+int cdops_stop_cdda()
+{
+  return cdops_exec_cmd(22, 0);
 }
 
 int cdops_packet(const unsigned short *packet, unsigned short size, void *buf)

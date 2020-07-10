@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "cdops.h"
+#include "aica.h"
 
 extern int check_cable(void);
 extern void init_video(int cabletype, int pixelmode);
@@ -207,6 +208,7 @@ int main()
 {
   cdops_init();
   init_tmr0();
+  aica_init();
   clrscr(0x1f);
   init_video(check_cable(), 1);
 

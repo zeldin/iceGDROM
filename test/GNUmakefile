@@ -2,7 +2,7 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-SOURCES_C = main.c cdops.c pseudorandom.c
+SOURCES_C = main.c cdops.c aica.c pseudorandom.c
 SOURCES_S = video.s syscall.s
 SOURCES_TEST = benchmark.c dmatest.c
 
@@ -10,10 +10,12 @@ OBJ = $(SOURCES_C:%.c=%.o) $(SOURCES_S:%.s=%.o)
 OBJ_TEST = $(SOURCES_TEST:%.c=%.o)
 
 SHCFLAGS ?= -O2 -std=c99
+ARMCFLAGS ?= -O2 -std=c99
 
 TOOLS_DIR = ../../tools/obj
 
 SHCC = sh-elf-gcc -ml -m4-single-only -ffreestanding
+ARMCC = arm-elf-gcc -mlittle-endian -mcpu=arm7di -ffreestanding
 
 all :
 
@@ -24,7 +26,7 @@ flash :
 upload :
 
 
-tests : BENCHMARK.GI0 DMATEST.GI0
+tests : BENCHMARK.GI0 DMATEST.GI0 CDDATEST.GI0
 
 .SECONDARY:
 
@@ -32,6 +34,9 @@ BENCHMARK.GI0 : benchmark.gdi benchmark.isoa benchmark.isob testdata.bin dummyda
 	$(TOOLS_DIR)/makegdimg $< $@
 
 DMATEST.GI0 : dmatest.gdi dmatest.isoa dmatest.isob testdata.bin dummydata.bin
+	$(TOOLS_DIR)/makegdimg $< $@
+
+CDDATEST.GI0 : cddatest.gdi cddatest.isoa cddatest.isob testdata.bin dummydata.bin
 	$(TOOLS_DIR)/makegdimg $< $@
 
 %.gdi :
@@ -72,6 +77,23 @@ dummydata.bin :
 
 gentestdata : $(SRC)/pseudorandom.c $(SRC)/pseudorandom.h
 	$(CC) -o $@ -DSTANDALONE_TOOL $<
+
+aica.o : arm_sound_code.h
+
+arm_startup.o : $(SRC)/arm_startup.S
+	$(ARMCC) -c -x assembler-with-cpp -o $@ $<
+
+arm_sound_code.o : $(SRC)/arm_sound_code.c
+	$(ARMCC) -c $(ARMCFLAGS) $< -o $@
+
+arm_sound_code.elf : arm_startup.o arm_sound_code.o
+	$(ARMCC) -Wl,-Ttext,0 -nostdlib -nostartfiles -o $@ $^ -lgcc
+
+arm_sound_code.bin : arm_sound_code.elf
+	arm-elf-objcopy -S -R .stack -O binary $< $@
+
+arm_sound_code.h : arm_sound_code.bin
+	od -v -An -tx4 -w24 --endian=little $< | sed -e 's/[0-9a-fA-F]\+/0x&,/g' > $@
 
 -include $(OBJ:%.o=%.d) $(OBJ_TEST:%.o=%.d)
 
