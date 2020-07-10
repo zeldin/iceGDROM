@@ -26,6 +26,8 @@ upload :
 
 tests : BENCHMARK.GI0 DMATEST.GI0
 
+.SECONDARY:
+
 BENCHMARK.GI0 : benchmark.gdi benchmark.isoa benchmark.isob testdata.bin dummydata.bin
 	$(TOOLS_DIR)/makegdimg $< $@
 
