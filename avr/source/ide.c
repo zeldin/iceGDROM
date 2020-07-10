@@ -291,7 +291,7 @@ static void process_packet()
   }
 }
 
-static void set_secnr()
+void set_secnr()
 {
   if (disk_type == 0xff)
     IDE_SECNR = 0x06;

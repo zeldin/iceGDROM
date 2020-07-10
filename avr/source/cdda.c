@@ -186,6 +186,7 @@ void service_cdda()
 
   if (!cdda_fill_buffer()) {
     cdda_stop();
+    set_secnr();
     return;
   }
 
