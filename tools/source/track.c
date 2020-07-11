@@ -363,7 +363,7 @@ static const struct {
 
 static bool track_validate_size(enum track_type type, uint32_t secsize)
 {
-  if (type == TRACK_RAW_2352 && secsize >= 2352)
+  if ((type == TRACK_RAW_2352 || type == TRACK_SWAP_2352) && secsize >= 2352)
     /* Allow extra (subchannel) data */
     return true;
 
@@ -381,7 +381,7 @@ static bool track_read_sector(struct track *t, uint8_t *sector, FILE *f,
 {
   if (f == NULL)
     memset(sector, 0, 2352);
-  if (t->type == TRACK_RAW_2352) {
+  if (t->type == TRACK_RAW_2352 || t->type == TRACK_SWAP_2352) {
     if (f != NULL) {
       size_t r = fread(sector, 1, 2352, f);
       if (r != 2352) {
@@ -394,6 +394,8 @@ static bool track_read_sector(struct track *t, uint8_t *sector, FILE *f,
 	  return false;
 	}
       }
+      if (formats[t->type].convert_func)
+	formats[t->type].convert_func(sector, adr);
     }
   } else {
     if (f != NULL) {
