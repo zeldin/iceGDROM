@@ -1,4 +1,5 @@
 /fp-lib-table
+/fp-info-cache
 *.bak
 *-bak
 *-cache.lib
