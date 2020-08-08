@@ -19,11 +19,11 @@ module picorv32_wrapper (
 
 	    // EXTRAM i/f
 	    output wire[15:0]              extram_a,
-	    input  wire[7:0]               extram_d_in,
-	    output wire[7:0]               extram_d_out,
+	    input  wire[31:0]              extram_d_in,
+	    output wire[31:0]              extram_d_out,
 	    output wire                    extram_cs,
 	    output wire                    extram_oe,
-	    output wire                    extram_we,
+	    output wire[3:0]               extram_wstrb,
 
 	    // IRQ
 	    input  wire                    ext_irq3
@@ -111,14 +111,15 @@ module picorv32_wrapper (
 
    assign     mem_ready = 1'b1;
    assign     mem_rdata = (mem_addr[31]?
-			   {4{(mem_addr[16]? periph_rdata : extram_d_in)}}
+			   (mem_addr[16]? { 24'h000000, periph_rdata }
+			    : extram_d_in)
 			   : intmem_rdata);
 
    assign     extram_a = mem_addr[15:0];
-   assign     extram_d_out = mem_wdata[7:0];
+   assign     extram_d_out = mem_wdata;
    assign     extram_cs = mem_addr[31] && !mem_addr[16];
    assign     extram_oe = mem_valid && !mem_wstrb;
-   assign     extram_we = mem_valid && |mem_wstrb;
+   assign     extram_wstrb = (mem_valid ? mem_wstrb : 4'b0000);
 
    generate
       if (mem_init == "")
@@ -167,7 +168,7 @@ module picorv32_wrapper (
 				.addr(mem_addr[7:2]),
 				.cs(mem_addr[31] && mem_addr[16]),
 				.oe(mem_valid && !mem_wstrb),
-				.we(mem_valid && |mem_wstrb),
+				.we(mem_valid && mem_wstrb[0]),
 
 				.porta(porta), .portb(portb),
 				.sdcard_sck(sdcard_sck),

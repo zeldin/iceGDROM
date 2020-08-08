@@ -60,8 +60,10 @@ module top (
 
    wire clkout, lock, lock_cdclk;
    wire [15:0] sram_a;
-   wire [7:0]  d_to_ide_or_cdda_or_sdcard, d_from_ide, d_from_cdda, d_from_sdcard;
-   wire sram_cs, sram_oe, sram_we, sram_wait_ide, sram_wait_cdda, sram_wait_sdcard;
+   wire [31:0] d_to_ide_or_cdda_or_sdcard, d_from_ide;
+   wire [7:0] d_from_cdda, d_from_sdcard;
+   wire sram_cs, sram_oe, sram_wait_ide, sram_wait_cdda, sram_wait_sdcard;
+   wire [3:0] sram_wstrb;
    wire ide_irq;
    reg ide_irq_sync;
    wire cs_gate, sram_cs_ide, sram_cs_cdda, sram_cs_sdcard;
@@ -112,7 +114,7 @@ module top (
 	      .intrq(INTRQ), .iocs16_(), .iordy(IORDY), .pdiag_(),
 	      .reset_(G_RST), .csel(1'b0), .clk(clkout), .sram_a(sram_a),
 	      .sram_d_in(d_to_ide_or_cdda_or_sdcard), .sram_d_out(d_from_ide),
-	      .sram_cs(sram_cs_ide), .sram_oe(sram_oe), .sram_we(sram_we),
+	      .sram_cs(sram_cs_ide), .sram_oe(sram_oe), .sram_wstrb(sram_wstrb),
 	      .sram_wait(sram_wait_ide), .cpu_irq(ide_irq),
 	      .sdcard_dma_data(sdcard_dma_data), .sdcard_dma_addr(sdcard_dma_addr),
 	      .sdcard_dma_strobe(sdcard_dma_strobe));
@@ -122,16 +124,16 @@ module top (
 	       .clk(clkout), .rst(rv32_reset),
 	       .sram_a(sram_a),
 	       .sram_d_in(d_to_ide_or_cdda_or_sdcard), .sram_d_out(d_from_cdda),
-	       .sram_cs(sram_cs_cdda), .sram_oe(sram_oe), .sram_we(sram_we),
+	       .sram_cs(sram_cs_cdda), .sram_oe(sram_oe), .sram_wstrb(sram_wstrb),
 	       .sram_wait(sram_wait_cdda), .sdcard_dma_data(sdcard_dma_data),
 	       .sdcard_dma_addr(sdcard_dma_addr), .sdcard_dma_strobe(sdcard_dma_strobe));
 
    sdcard_interface
      sdcard_inst(.sclk(sdcard_sck), .mosi(sdcard_mosi), .miso(sdcard_miso),
 		 .clk(clkout), .rst(rv32_reset),
-		 .sram_a(sram_a), .sram_d_in(d_to_ide_or_cdda_or_sdcard),
+		 .sram_a(sram_a), .sram_d_in(d_to_ide_or_cdda_or_sdcard[7:0]),
 		 .sram_d_out(d_from_sdcard), .sram_cs(sram_cs_sdcard),
-		 .sram_oe(sram_oe), .sram_we(sram_we), .sram_wait(sram_wait_sdcard),
+		 .sram_oe(sram_oe), .sram_we(sram_wstrb[0]), .sram_wait(sram_wait_sdcard),
 		 .dma_data(sdcard_dma_data), .dma_addr(sdcard_dma_addr), .dma_strobe(sdcard_dma_strobe));
 
    picorv32_wrapper #(.mem_size(12),
@@ -147,9 +149,10 @@ module top (
 	        .sdcard_sck(sdcard_sck), .sdcard_mosi(sdcard_mosi),
 	        .sdcard_miso(sdcard_miso), .rxd(RXD), .txd(TXD),
 	        .extram_a(sram_a),
-	        .extram_d_in(sram_a[12]? d_from_ide : (sram_a[11]? d_from_cdda : d_from_sdcard)),
+	        .extram_d_in(sram_a[12]? d_from_ide :
+			     {24'h000000, (sram_a[11]? d_from_cdda : d_from_sdcard)}),
 	        .extram_d_out(d_to_ide_or_cdda_or_sdcard),
-	        .extram_cs(sram_cs), .extram_oe(sram_oe), .extram_we(sram_we),
+	        .extram_cs(sram_cs), .extram_oe(sram_oe), .extram_wstrb(sram_wstrb),
 	        .ext_irq3(ide_irq_sync));
 
 endmodule // top
