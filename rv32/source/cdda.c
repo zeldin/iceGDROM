@@ -9,6 +9,8 @@
 #include "hardware.h"
 #include "timer.h"
 #include "imgfile.h"
+#include "ide.h"
+#include "divmod.h"
 
 uint8_t cdda_subcode_q[12];
 
@@ -48,22 +50,19 @@ static void advance_msf(uint8_t *p)
   p[0] += 7;
 }
 
-static uint8_t tobcd(uint8_t v)
+static uint32_t tobcd(uint32_t v)
 {
-  uint8_t l = v%10;
-  v /= 10;
-  return (v<<4)|l;
+  struct divmod_result divmod10 = divmod(v, 10);
+  return (divmod10.quot << 4) | divmod10.rem;
 }
 
 static void set_msf(uint8_t *p, uint32_t blk)
 {
-  uint8_t m = blk/4500;
-  uint16_t sf = blk%4500;
-  uint8_t s = sf/75;
-  uint8_t f = sf%75;
-  p[0] = tobcd(m);
-  p[1] = tobcd(s);
-  p[2] = tobcd(f);
+  struct divmod_result divmod4500 = divmod(blk, 4500);
+  p[0] = tobcd(divmod4500.quot);
+  struct divmod_result divmod75 = divmod(divmod4500.rem, 75);
+  p[1] = tobcd(divmod75.quot);
+  p[2] = tobcd(divmod75.rem);
 }
 #endif
 

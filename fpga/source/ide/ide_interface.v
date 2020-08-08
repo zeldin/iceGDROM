@@ -218,7 +218,7 @@ module ide_interface (
 	 else
 	   sram_d = buffer_read_data[7:0];
       end else
-	case (sram_a[3:0])
+	case (sram_a[5:2])
 	  4'b0000: sram_d = status_q;
 	  4'b0001: sram_d = error_q;
 	  4'b0010: sram_d = iocontrol_q;
@@ -234,7 +234,7 @@ module ide_interface (
 	  4'b1110: sram_d = drvhead_q;
 	  4'b1111: sram_d = command_q;
 	  default: sram_d = 0;
-	endcase // case (sram_a[3:0])
+	endcase // case (sram_a[5:2])
    end
    
    always @(*) begin
@@ -286,7 +286,7 @@ module ide_interface (
 	 dmarq_d = 1'b0; /* Last word, so negate DMARQ */
       end
       if (sram_cs & sram_we & ~sram_a[10]) begin
-	 case (sram_a[3:0])
+	 case (sram_a[5:2])
 	   4'b0000: begin
 	      status_d = sram_d_in;
 	      irq_d = 1'b1;
@@ -322,7 +322,7 @@ module ide_interface (
       end
       if (bsy) begin
 	 if (sram_cs & sram_we & ~sram_a[10]) begin
-	    case (sram_a[3:0])
+	    case (sram_a[5:2])
 	      4'b1001: features_d = sram_d_in;
 	      4'b1010: seccnt_d = sram_d_in;
 	      4'b1100: cyllo_d = sram_d_in;

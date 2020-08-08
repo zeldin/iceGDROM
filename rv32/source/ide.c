@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <avr/interrupt.h>
-#include <avr/pgmspace.h>
 
 #include "config.h"
 
@@ -194,9 +192,9 @@ static void service_packet_data_dma(uint8_t cnt, uint8_t offs)
   sei();
 }
 
-static const uint8_t gdrom_version[] PROGMEM = "Rev 5.07";
+static const uint8_t gdrom_version[] = "Rev 5.07";
 
-static const uint8_t cmd71_reply[] PROGMEM = {
+static const uint8_t cmd71_reply[] = {
   0xba, 0x06, 0x0d, 0xca, 0x6a, 0x1f
 };
 
@@ -206,7 +204,7 @@ static void do_req_mode()
   uint8_t addr = packet.req_mode.start_addr;
   uint8_t len = packet.req_mode.alloc_len;
   if (addr == 18 && len == 8) {
-    memcpy_P(&IDE_DATA_BUFFER[0], gdrom_version, sizeof(gdrom_version));
+    memcpy(&IDE_DATA_BUFFER[0], gdrom_version, sizeof(gdrom_version));
     packet_data_last0(8/2);
   } else if(addr == 0 && len == 10) {
     memset(IDE_DATA_BUFFER, 0, 10); /* FIXME */
@@ -235,7 +233,7 @@ static void do_set_mode()
 
 static void do_cmd71()
 {
-  memcpy_P(&IDE_DATA_BUFFER[0], cmd71_reply, sizeof(cmd71_reply));
+  memcpy(&IDE_DATA_BUFFER[0], cmd71_reply, sizeof(cmd71_reply));
 
   packet_data_last0(sizeof(cmd71_reply)/2);
 }
@@ -392,7 +390,7 @@ static void data_irq()
   }
 }
 
-ISR(INT1_vect)
+void IRQ3_vect(void)
 {
   uint8_t devcon = IDE_DEVCON & 0x3c;
   IDE_DEVCON = devcon;

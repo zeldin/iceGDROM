@@ -76,13 +76,13 @@ module cdda_interface (
 			      .write_lo(cpu_writes_right & cpu_writes_low));
 
    always @(*) begin
-      case (sram_a[1:0])
+      case (sram_a[3:2])
 	2'b00: sram_d = { 4'b0000, dma_buffer_select_q, dma_mode_q, underflow_q, enabled_q };
 	2'b01: sram_d = bufpos_q;
 	2'b10: sram_d = last_valid_data_q;
 	2'b11: sram_d = scratchpad_q;
 	default: sram_d = 0;
-      endcase // case (sram_a[1:0])
+      endcase // case (sram_a[3:2])
    end
 
    always @(*) begin
@@ -110,7 +110,7 @@ module cdda_interface (
       end
 
       if (sram_cs & sram_we & ~sram_a[10]) begin
-	 case (sram_a[1:0])
+	 case (sram_a[3:2])
 	   2'b00: begin
 	      enabled_d = sram_d_in[0];
 	      if (sram_d_in[1]) underflow_d = 1'b0;
@@ -120,7 +120,7 @@ module cdda_interface (
 	   2'b01: bufpos_d = sram_d_in;
 	   2'b10: last_valid_data_d = sram_d_in;
 	   2'b11: scratchpad_d = sram_d_in;
-	 endcase // case (sram_a[1:0])
+	 endcase // case (sram_a[3:2])
       end
    end
 

@@ -5,23 +5,18 @@
 #include "hardware.h"
 #include "debug.h"
 
-#define CLKRATE 16934400
-
 #ifndef NDEBUG
 
 void debug_init()
 {
-  UCSR0A = _BV(TXC)|_BV(U2X);
-  UCSR0B = _BV(TXEN);
-  UCSR0C = _BV(UCSZ1)|_BV(UCSZ0);
-  UBRR0L = CLKRATE / 8 / BAUDRATE - 1;
+  UBRR0 = CPU_FREQ / BAUDRATE - 1;
 }
 
 void debug_putc(char c)
 {
   if (c == '\n')
     debug_putc('\r');
-  loop_until_bit_is_set(UCSR0A, UDRE);
+  loop_until_bit_is_set(UCSR0, UDRE);
   UDR0 = c;
 }
 
@@ -39,10 +34,10 @@ void debug_putx(uint8_t x)
   debug_putx1(x);
 }
 
-void debug_puts_P(const char *str)
+void debug_puts(const char *str)
 {
   char c;
-  while ((c = pgm_read_byte(str++)))
+  while ((c = *str++))
     debug_putc(c);
 }
 

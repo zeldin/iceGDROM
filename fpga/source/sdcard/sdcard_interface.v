@@ -32,7 +32,7 @@ module sdcard_interface(
    reg [15:0] crc16_d, crc16_q;
 
    assign     spi_data_in = (dma_mode_q? 8'hff : sram_d_in);
-   assign     start = (dma_mode_q? dma_trigger_q : (sram_cs & sram_we & (sram_a[2:0] == 3'b001)));
+   assign     start = (dma_mode_q? dma_trigger_q : (sram_cs & sram_we & (sram_a[4:2] == 3'b001)));
    assign     sram_wait = 1'b0;
 
    assign     dma_data = latch_q;
@@ -51,7 +51,7 @@ module sdcard_interface(
 		       .crc_bit(spi_crc_bit), .crc_strobe(spi_crc_strobe));
 
    always @(*) begin
-      case (sram_a[2:0])
+      case (sram_a[4:2])
 	3'b000: sram_d = {avail_q, dma_mode_q, 1'b0, bits_q};
 	3'b001: sram_d = latch_q;
 	3'b010: sram_d = divider_q;
@@ -72,7 +72,7 @@ module sdcard_interface(
       crc16_d = crc16_q;
 
       if (sram_cs & sram_we) begin
-	 case (sram_a[2:0])
+	 case (sram_a[4:2])
 	   3'b000: begin
 	      bits_d = sram_d_in[4:0];
 	      if (sram_d_in[6]) begin

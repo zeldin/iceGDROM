@@ -8,16 +8,14 @@
 
 #else
 
-#include <avr/pgmspace.h>
-
 #define DEBUG_INIT() debug_init()
 #define DEBUG_PUTC(c) debug_putc(c)
 #define DEBUG_PUTX(x) debug_putx(x)
-#define DEBUG_PUTS(s) debug_puts_P(PSTR(s))
+#define DEBUG_PUTS(s) debug_puts(s)
 
 extern void debug_init();
 extern void debug_putc(char c);
 extern void debug_putx(uint8_t x);
-extern void debug_puts_P(const char *str);
+extern void debug_puts(const char *str);
 
 #endif

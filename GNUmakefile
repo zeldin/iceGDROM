@@ -1,5 +1,5 @@
 
-SUBDIRS = avr fpga tools test
+SUBDIRS = rv32 fpga tools test
 
 .DEFAULT_GOAL:=dummy
 

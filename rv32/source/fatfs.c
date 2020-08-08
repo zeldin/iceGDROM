@@ -132,7 +132,7 @@ static bool check_root_block(uint32_t part_start)
   cluster_shift=i;
   blocks_per_cluster = n;
 
-  uint16_t rds = *(uint16_t*)(data_block+17); /* rootDirEntryCount */
+  uint16_t rds = data_block[17] + (data_block[18]<<8); /* rootDirEntryCount */
   root_dir_entries = rds;
   rds = (rds >> 4) + ((((uint8_t)rds)&0xf)? 1:0);
   uint32_t bpf = *(uint16_t*)(data_block+22); /* sectorsPerFat16 */
@@ -144,7 +144,7 @@ static bool check_root_block(uint32_t part_start)
   root_dir_start = ds;
   ds += rds;
   data_start = ds - (((uint16_t)2)<<i);
-  uint32_t cc = *(uint16_t*)(data_block+19); /* totalSectors16 */
+  uint32_t cc = data_block[19] + (data_block[20] << 8); /* totalSectors16 */
   if (!(uint16_t)cc)
     cc = *(uint32_t*)(data_block+32); /* totalSectors32 */
   cc -= (ds - part_start);
@@ -183,7 +183,8 @@ bool fatfs_mount()
     return false;
   if ((data_block[0x1be] & 0x7f) != 0)
     return false;
-  uint32_t part_start = *(uint32_t*)(data_block+0x1c6);
+  uint32_t part_start = *(uint16_t*)(data_block+0x1c6);
+  part_start += (*(uint16_t*)(data_block+0x1c8)) << 16;
   if (!part_start)
     return false;
   return check_root_block(part_start);
