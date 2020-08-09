@@ -4,6 +4,7 @@
 #define EMPH_BIT PIN0
 
 #define _MMIO_BYTE(addr) (*(volatile uint8_t *)(void *)(addr))
+#define _MMIO_WORD(addr) (*(volatile uint32_t *)(void *)(addr))
 
 #define PORTA          _MMIO_BYTE(0xffffff00)
 #define PINA           _MMIO_BYTE(0xffffff04)
@@ -11,9 +12,9 @@
 #define PORTB          _MMIO_BYTE(0xffffff10)
 #define PINB           _MMIO_BYTE(0xffffff14)
 #define DDRB           _MMIO_BYTE(0xffffff18)
-#define UDR0           _MMIO_BYTE(0xffffff20)
-#define UCSR0          _MMIO_BYTE(0xffffff24)
-#define UBRR0          _MMIO_BYTE(0xffffff28)
+#define UDR0           _MMIO_WORD(0xffffff20)
+#define UCSR0          _MMIO_WORD(0xffffff24)
+#define UBRR0          _MMIO_WORD(0xffffff28)
 
 #define PIN0           0
 #define PIN1           1

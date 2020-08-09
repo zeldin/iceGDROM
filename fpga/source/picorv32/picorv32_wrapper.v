@@ -111,8 +111,7 @@ module picorv32_wrapper (
 
    assign     mem_ready = 1'b1;
    assign     mem_rdata = (mem_addr[31]?
-			   (mem_addr[16]? { 24'h000000, periph_rdata }
-			    : extram_d_in)
+			   (mem_addr[16]? periph_rdata : extram_d_in)
 			   : intmem_rdata);
 
    assign     extram_a = mem_addr[15:0];
@@ -159,16 +158,16 @@ module picorv32_wrapper (
    // -------------
    // Periherals
 
-   wire [7:0] periph_rdata;
+   wire [31:0] periph_rdata;
 
    peripherals peripherals_inst(.clk(clk),
 				.nrst(nrst),
 				.data_out(periph_rdata),
-				.data_in(mem_wdata[7:0]),
+				.data_in(mem_wdata),
 				.addr(mem_addr[7:2]),
 				.cs(mem_addr[31] && mem_addr[16]),
 				.oe(mem_valid && !mem_wstrb),
-				.we(mem_valid && mem_wstrb[0]),
+				.wstrb(mem_valid ? mem_wstrb : 4'b0000),
 
 				.porta(porta), .portb(portb),
 				.sdcard_sck(sdcard_sck),

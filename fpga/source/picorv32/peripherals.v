@@ -2,12 +2,12 @@ module peripherals (
 	    input  clk,
 	    input  nrst,
 
-	    output reg[7:0] data_out,
-	    input wire[7:0] data_in,
+	    output reg[31:0] data_out,
+	    input wire[31:0] data_in,
 	    input wire[5:0] addr,
 	    input cs,
 	    input oe,
-	    input we,
+	    input[3:0] wstrb,
 
 	    // PORTA
 	    inout[7:0]                    porta,
@@ -35,10 +35,10 @@ module peripherals (
 
    reg [10:0]  ser_out = ~0;
    reg [8:0]   ser_in = ~0;
-   reg [7:0]   ser_tx_cnt = 0;
-   reg [7:0]   ser_rx_cnt = 0;
+   reg [15:0]  ser_tx_cnt = 0;
+   reg [15:0]  ser_rx_cnt = 0;
    reg [7:0]   ser_rx_data;
-   reg [7:0]   ser_brr;
+   reg [15:0]  ser_brr;
    reg         ser_rxc;
    reg         ser_fe;
    reg         ser_dor;
@@ -103,30 +103,34 @@ module peripherals (
 	   ser_dor <= 1'b0;
 	end
 
-	if(cs && we)
+	if(cs && wstrb[0])
 	  case(addr)
-	    6'h00: porta_portx <= data_in;
-	    6'h02: porta_ddrx  <= data_in;
-	    6'h04: portb_portx <= data_in;
-	    6'h06: portb_ddrx  <= data_in;
-	    6'h08: ser_out <= {1'b1, data_in, 1'b0, 1'b1};
-	    6'h0a: ser_brr <= data_in;
+	    6'h00: porta_portx <= data_in[7:0];
+	    6'h02: porta_ddrx  <= data_in[7:0];
+	    6'h04: portb_portx <= data_in[7:0];
+	    6'h06: portb_ddrx  <= data_in[7:0];
+	    6'h08: ser_out <= {1'b1, data_in[7:0], 1'b0, 1'b1};
+	    6'h0a: ser_brr[7:0] <= data_in[7:0];
+	  endcase; // case (addr)
+	if(cs && wstrb[1])
+	  case(addr)
+	    6'h0a: ser_brr[15:8] <= data_in[15:8];
 	  endcase; // case (addr)
      end // else: !if(~nrst)
 
    always @(*) begin
-      data_out = 8'h00;
+      data_out = 32'h00000000;
       if (nrst && cs && oe)
 	case(addr)
-	  6'h00: data_out = porta_portx;
-	  6'h01: data_out = porta_pinx;
-	  6'h02: data_out = porta_ddrx;
-	  6'h04: data_out = portb_portx;
-	  6'h05: data_out = portb_pinx;
-	  6'h06: data_out = portb_ddrx;
-	  6'h08: data_out = ser_rx_data;
-	  6'h09: data_out = {ser_rxc, &ser_out, &ser_out, ser_fe, ser_dor, 3'b000};
-	  6'h0a: data_out = ser_brr;
+	  6'h00: data_out[7:0] = porta_portx;
+	  6'h01: data_out[7:0] = porta_pinx;
+	  6'h02: data_out[7:0] = porta_ddrx;
+	  6'h04: data_out[7:0] = portb_portx;
+	  6'h05: data_out[7:0] = portb_pinx;
+	  6'h06: data_out[7:0] = portb_ddrx;
+	  6'h08: data_out[7:0] = ser_rx_data;
+	  6'h09: data_out[7:0] = {ser_rxc, &ser_out, &ser_out, ser_fe, ser_dor, 3'b000};
+	  6'h0a: data_out[15:0] = ser_brr;
 	endcase // case (addr)
    end
 
