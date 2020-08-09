@@ -1,5 +1,5 @@
 
-#define CPU_FREQ 16934400
+#define CPU_FREQ 33868800
 
 
 /* Define as 1 if the CD pin is shorted to GND when the card is removed */

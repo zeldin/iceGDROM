@@ -54,4 +54,4 @@ set_io A1     T3
 set_io A2     T2
 
 set_frequency clkout 67.7376
-set_frequency clkout_cpu 16.9344
+set_frequency clkout_cpu 33.8688

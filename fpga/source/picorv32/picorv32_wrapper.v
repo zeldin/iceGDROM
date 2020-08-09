@@ -79,6 +79,12 @@ module picorv32_wrapper (
    wire         mem_instr;
    wire [31:0]  mem_rdata;
 
+   wire 	mem_la_read;
+   wire 	mem_la_write;
+   wire [31:0] 	mem_la_addr;
+   wire [31:0] 	mem_la_wdata;
+   wire [3:0] 	mem_la_wstrb;
+
    picorv32 #(
 	      .ENABLE_COUNTERS(0),
 	      .CATCH_MISALIGN(0),
@@ -100,6 +106,11 @@ module picorv32_wrapper (
 		.mem_wstrb(mem_wstrb),
 		.mem_rdata(mem_rdata),
 	        .mem_instr(mem_instr),
+	        .mem_la_read(mem_la_read),
+	        .mem_la_write(mem_la_write),
+	        .mem_la_addr(mem_la_addr),
+	        .mem_la_wdata(mem_la_wdata),
+	        .mem_la_wstrb(mem_la_wstrb),
 	        .irq({ext_irq3, 3'b000})
 	);
 
@@ -128,9 +139,9 @@ module picorv32_wrapper (
 	end
    endgenerate
 
-   always @(negedge clk) begin
+   always @(posedge clk) begin
       if (prog_mode) begin
-	   intmem_rdata <= memory[prog_addr >> 1];
+	 intmem_rdata <= memory[prog_addr >> 1];
 	 if (prog_high) begin
 	    if (prog_addr[0])
 	      memory[prog_addr >> 1][31:24] <= prog_data;
@@ -142,18 +153,15 @@ module picorv32_wrapper (
 	    else
 	      memory[prog_addr >> 1][7:0] <= prog_data;
 	 end
-      end else
-      if (nrst && mem_valid) begin
-	 if (!mem_wstrb && !mem_addr[31]) begin
-	    intmem_rdata <= memory[mem_addr >> 2];
-	 end else if (|mem_wstrb && !mem_addr[31]) begin
-	    if (mem_wstrb[0]) memory[mem_addr >> 2][ 7: 0] <= mem_wdata[ 7: 0];
-	    if (mem_wstrb[1]) memory[mem_addr >> 2][15: 8] <= mem_wdata[15: 8];
-	    if (mem_wstrb[2]) memory[mem_addr >> 2][23:16] <= mem_wdata[23:16];
-	    if (mem_wstrb[3]) memory[mem_addr >> 2][31:24] <= mem_wdata[31:24];
-	 end
+      end else if (mem_la_read && !mem_la_addr[31]) begin
+	 intmem_rdata <= memory[mem_la_addr >> 2];
+      end else if (nrst && mem_la_write && !mem_la_addr[31]) begin
+	 if (mem_la_wstrb[0]) memory[mem_la_addr >> 2][ 7: 0] <= mem_la_wdata[ 7: 0];
+	 if (mem_la_wstrb[1]) memory[mem_la_addr >> 2][15: 8] <= mem_la_wdata[15: 8];
+	 if (mem_la_wstrb[2]) memory[mem_la_addr >> 2][23:16] <= mem_la_wdata[23:16];
+	 if (mem_la_wstrb[3]) memory[mem_la_addr >> 2][31:24] <= mem_la_wdata[31:24];
       end
-   end
+   end // always @ (posedge clk)
 
    // -------------
    // Periherals
