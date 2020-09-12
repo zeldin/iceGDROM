@@ -56,7 +56,7 @@ module top (
 
    localparam REFCLK_FREQ = 11289600;
    localparam CDCLK_FREQ = 33868800;
-   localparam CPU_FREQ = 33868800;
+   localparam CPU_FREQ = 39513600;
    localparam CLKOUT_FREQ = CPU_FREQ*2;
 
    wire clkout, lock, lock_cdclk;
