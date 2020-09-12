@@ -23,6 +23,9 @@ module peripherals (
 	    // UART related
 	    input                         rxd,
 	    output wire                   txd,
+
+	    // TIMER0
+	    output timer0_comp_irq
             );
 
    wire [7:0]  porta_pinx;
@@ -44,6 +47,10 @@ module peripherals (
    reg         ser_dor;
    reg         rxd_s;
    assign txd = ser_out[0];
+
+   reg 	       ocie0, ocf0;
+   reg [23:0]  tcnt0, ocr0;
+   assign      timer0_comp_irq = ocie0 && ocf0;
 
    tri_buf tri_buf_porta_inst[7:0](.out(porta_portx), .in(porta_pinx),
 				   .en(porta_ddrx), .pin(porta));
@@ -73,6 +80,10 @@ module peripherals (
 	ser_fe  <= 1'b0;
 	ser_dor <= 1'b0;
 	rxd_s <= 1'b1;
+	ocie0 <= 1'b0;
+	ocf0 <= 1'b0;
+	tcnt0 <= 0;
+	ocr0 <= 0;
      end else begin
 	if (ser_tx_cnt == 0) begin
 	   ser_out <= {1'b1,ser_out[10:1]};
@@ -103,6 +114,12 @@ module peripherals (
 	   ser_dor <= 1'b0;
 	end
 
+	if (tcnt0 == ocr0) begin
+	   tcnt0 <= 0;
+	   ocf0 <= 1'b1;
+	end else
+	  tcnt0 <= tcnt0 + 1;
+
 	if(cs && wstrb[0])
 	  case(addr)
 	    6'h00: porta_portx <= data_in[7:0];
@@ -111,10 +128,21 @@ module peripherals (
 	    6'h06: portb_ddrx  <= data_in[7:0];
 	    6'h08: ser_out <= {1'b1, data_in[7:0], 1'b0, 1'b1};
 	    6'h0a: ser_brr[7:0] <= data_in[7:0];
+	    6'h0c: tcnt0[7:0] <= data_in[7:0];
+	    6'h0d: ocr0[7:0] <= data_in[7:0];
+	    6'h0e: if (data_in[0]) ocf0 <= 1'b0;
+	    6'h0f: ocie0 <= data_in[0];
 	  endcase; // case (addr)
 	if(cs && wstrb[1])
 	  case(addr)
 	    6'h0a: ser_brr[15:8] <= data_in[15:8];
+	    6'h0c: tcnt0[15:8] <= data_in[15:8];
+	    6'h0d: ocr0[15:8] <= data_in[15:8];
+	  endcase; // case (addr)
+	if(cs && wstrb[2])
+	  case(addr)
+	    6'h0c: tcnt0[23:16] <= data_in[23:16];
+	    6'h0d: ocr0[23:16] <= data_in[23:16];
 	  endcase; // case (addr)
      end // else: !if(~nrst)
 
@@ -131,6 +159,10 @@ module peripherals (
 	  6'h08: data_out[7:0] = ser_rx_data;
 	  6'h09: data_out[7:0] = {ser_rxc, &ser_out, &ser_out, ser_fe, ser_dor, 3'b000};
 	  6'h0a: data_out[15:0] = ser_brr;
+	  6'h0c: data_out[23:0] = tcnt0;
+	  6'h0d: data_out[23:0] = ocr0;
+	  6'h0e: data_out[0] = ocf0;
+	  6'h0f: data_out[0] = ocie0;
 	endcase // case (addr)
    end
 

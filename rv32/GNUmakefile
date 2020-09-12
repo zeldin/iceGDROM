@@ -2,13 +2,13 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-SOURCES = main.c sdcard.c fatfs.c imgfile.c cdda.c ide.c debug.c
-ASOURCES = start.S delay.S timer.S support.S divmod.S
+SOURCES = main.c sdcard.c fatfs.c imgfile.c cdda.c ide.c debug.c timer.c
+ASOURCES = start.S delay.S support.S
 
 CC = riscv32-unknown-elf-gcc
 OBJCOPY = riscv32-unknown-elf-objcopy
 ABI = ilp32e
-ARCH = rv32ec
+ARCH = rv32emc
 
 CFLAGS = -Os -fomit-frame-pointer
 LDFLAGS = -Wl,--defsym,__stack=0x3000,-T,$(SRC)/main.lds,-Map,$@.map -nostartfiles -mrelax

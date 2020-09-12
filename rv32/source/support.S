@@ -1,19 +1,8 @@
 #include "config.h"
-#include "custom_ops.S"
 
-	.global sei, cli, memcpy, memcmp
+	.global memcpy, memcmp
 
 	.section .text
-
-sei:
-	li a0, -10
-	picorv32_maskirq_insn(zero, a0)
-	ret
-	
-cli:
-	li a0, -1
-	picorv32_maskirq_insn(zero, a0)
-	ret
 
 memcpy:
 	add  a2,a2,a0

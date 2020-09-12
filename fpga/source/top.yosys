@@ -1,12 +1,13 @@
 verilog_defaults -add -noautowire
 verilog_defaults -add -Iavr/avr_core_v14/rtl/common_packs
 read_verilog top.v
+read_verilog vexriscv/core/VexRiscv.v
 hierarchy -top top \
 	-libdir ide \
 	-libdir ide/tech/ice40 \
 	-libdir cdda \
 	-libdir sdcard \
 	-libdir tech/ice40 \
-	-libdir picorv32 \
+	-libdir vexriscv \
 	-libdir avr
 synth_ice40

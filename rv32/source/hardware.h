@@ -3,8 +3,13 @@
 
 #define EMPH_BIT PIN0
 
+#ifdef __ASSEMBLER__
+#define _MMIO_BYTE(addr) addr
+#define _MMIO_WORD(addr) addr
+#else
 #define _MMIO_BYTE(addr) (*(volatile uint8_t *)(void *)(addr))
 #define _MMIO_WORD(addr) (*(volatile uint32_t *)(void *)(addr))
+#endif
 
 #define PORTA          _MMIO_BYTE(0xffffff00)
 #define PINA           _MMIO_BYTE(0xffffff04)
@@ -15,6 +20,10 @@
 #define UDR0           _MMIO_WORD(0xffffff20)
 #define UCSR0          _MMIO_WORD(0xffffff24)
 #define UBRR0          _MMIO_WORD(0xffffff28)
+#define TCNT0          _MMIO_WORD(0xffffff30)
+#define OCR0           _MMIO_WORD(0xffffff34)
+#define TIFR           _MMIO_WORD(0xffffff38)
+#define TIMSK          _MMIO_WORD(0xffffff3c)
 
 #define PIN0           0
 #define PIN1           1
@@ -39,6 +48,9 @@
 #define UDRE           5
 #define FE             4
 #define DOR            3
+
+#define OCIE0          0
+#define OCF0           0
 
 #define IDE_STATUS     _MMIO_BYTE(0xfffef000)
 #define IDE_ERROR      _MMIO_BYTE(0xfffef004)
@@ -70,13 +82,16 @@
 
 #define CDDA_DATA_BUFFER ((uint8_t *)0xfffeec00)
 
+#ifdef __ASSEMBLER__
+#define _BV(bit) (1<<(bit))
+#else
 #define _BV(bit) (1U<<(bit))
+#endif
 
 #define bit_is_clear(reg, bit) (!((reg) & _BV(bit)))
 #define bit_is_set(reg, bit) (!bit_is_clear(reg, bit))
 #define loop_until_bit_is_clear(reg, bit) do { } while(!bit_is_clear(reg, bit))
 #define loop_until_bit_is_set(reg, bit) do { } while(!bit_is_set(reg, bit))
 
-extern void cli(void);
-extern void sei(void);
-
+#define cli() asm volatile("csrrci zero,mstatus,8" ::: "memory")
+#define sei() asm volatile("csrrsi zero,mstatus,8" ::: "memory")

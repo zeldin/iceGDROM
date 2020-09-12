@@ -8,6 +8,7 @@ SECTIONS {
 		start.o(.text);
 		*(.sdata*);
 		*(.sbss*);
+                *(.data*);
 		*(.text*);
 		*(.rodata*);
 		*(*);

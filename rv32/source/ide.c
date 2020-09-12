@@ -390,6 +390,7 @@ static void data_irq()
   }
 }
 
+void IRQ3_vect(void) __attribute__((interrupt));
 void IRQ3_vect(void)
 {
   uint8_t devcon = IDE_DEVCON & 0x3c;
@@ -479,10 +480,12 @@ static void service_cd_read_cont()
 #ifdef IDEDEBUG
   IDE_IOCONTROL = 0x01;
   uint8_t i = 0;
+  __asm__ __volatile__("" ::: "memory");
   do {
     DEBUG_PUTX(IDE_DATA_BUFFER[((uint16_t)(i+offs))*2]);
     DEBUG_PUTX(IDE_DATA_BUFFER[((uint16_t)(i+offs))*2+1]);
   } while(((uint8_t)(++i)) != len && i<16);
+  __asm__ __volatile__("" ::: "memory");
   IDE_IOCONTROL = 0x00;
   DEBUG_PUTS("]\n");
 #endif
