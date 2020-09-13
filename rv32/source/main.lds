@@ -9,8 +9,8 @@ SECTIONS {
 		*(.sdata*);
 		*(.sbss*);
                 *(.data*);
-		*(.text*);
 		*(.rodata*);
+		*(.text*);
 		*(*);
 		. = ALIGN(4);
 		end = .;
