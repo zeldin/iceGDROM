@@ -27,3 +27,8 @@
 
 #define CDDA_SUBCHANNEL_Q
 
+
+/* Comment out to disable skipahead index */
+
+#define FATFS_SKIPAHEAD_INDEX
+

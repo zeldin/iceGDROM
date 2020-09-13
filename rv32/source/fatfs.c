@@ -18,6 +18,10 @@ static uint16_t root_dir_entries;
 static uint8_t cluster_shift, blocks_per_cluster;
 static bool fat32;
 static uint32_t file_start_cluster;
+#ifdef FATFS_SKIPAHEAD_INDEX
+#define NUM_SKIPAHEAD_ENTRIES 40
+static uint32_t skipahead_index[NUM_SKIPAHEAD_ENTRIES];
+#endif
 
 #define FAT_EOC   0x80000000
 #define FAT_ERROR 0x40000000
@@ -33,6 +37,16 @@ static void reset_cache()
     cache_lru[slot] = slot;
   }
 }
+
+#ifdef FATFS_SKIPAHEAD_INDEX
+static void init_skipahead_index()
+{
+  unsigned i;
+  skipahead_index[0] = file_start_cluster;
+  for (i=1; i<NUM_SKIPAHEAD_ENTRIES; i++)
+    skipahead_index[i] = FAT_EOC|FAT_ERROR;
+}
+#endif
 
 static uint8_t *read_block(uint32_t nr)
 {
@@ -227,8 +241,11 @@ bool fatfs_read_rootdir()
 	DEBUG_PUTC('\n');
 	file_start_cluster = *(uint16_t *)(p+26);
 	if (fat32) {
-	  ((uint16_t *)&file_start_cluster)[1] = *(uint16_t *)(p+20);
+	  file_start_cluster |= (*(uint16_t *)(p+20)) << 16;
 	}
+#ifdef FATFS_SKIPAHEAD_INDEX
+	init_skipahead_index();
+#endif
 	return true;
       }
     }
@@ -251,16 +268,35 @@ bool fatfs_read_rootdir()
 
 bool fatfs_seek(struct fatfs_handle *handle, uint32_t sector_nr)
 {
-  uint32_t hpos = handle->pos ^ ((handle->pos&0xff)&(blocks_per_cluster-1));
+  uint32_t hpos = handle->pos & ~(blocks_per_cluster-1);
+#ifdef FATFS_SKIPAHEAD_INDEX
+  uint32_t idx = sector_nr >> 16;
+  if (idx > NUM_SKIPAHEAD_ENTRIES)
+    idx = NUM_SKIPAHEAD_ENTRIES - 1;
+  while (idx > 0 && (skipahead_index[idx] & FAT_ERROR))
+    --idx;
+  if (hpos > sector_nr || hpos < (idx << 16)) {
+    hpos = idx << 16;
+    handle->cluster_nr = skipahead_index[idx];
+  }
+#else
   if (hpos > sector_nr) {
     handle->cluster_nr = file_start_cluster;
     hpos = 0;
   }
+#endif
   while((sector_nr ^ hpos) >= blocks_per_cluster) {
     if (handle->cluster_nr & FAT_EOC)
       break;
     handle->cluster_nr = get_fat_entry(handle->cluster_nr);
     hpos += blocks_per_cluster;
+#ifdef FATFS_SKIPAHEAD_INDEX
+    if (!(hpos & 0xffffu)) {
+      uint32_t idx = hpos >> 16;
+      if (idx < NUM_SKIPAHEAD_ENTRIES)
+	skipahead_index[idx] = handle->cluster_nr;
+    }
+#endif
   }
   handle->pos = sector_nr;
   return true;
@@ -278,6 +314,13 @@ bool fatfs_read_next_sector(struct fatfs_handle *handle, uint8_t *buf)
   if (++blk == blocks_per_cluster)
     handle->cluster_nr = get_fat_entry(handle->cluster_nr);
   handle->pos++;
+#ifdef FATFS_SKIPAHEAD_INDEX
+  if (!(handle->pos & 0xffffu)) {
+    uint32_t idx = handle->pos >> 16;
+    if (idx < NUM_SKIPAHEAD_ENTRIES)
+      skipahead_index[idx] = handle->cluster_nr;
+  }
+#endif
   return true;
 }
 
