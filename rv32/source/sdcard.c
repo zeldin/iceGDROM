@@ -24,14 +24,14 @@ static __inline void sd_spi_enable_init()
   PORTB |= _BV(SPI_CS);
   DDRB |= _BV(SPI_CS)|_BV(SPI_MOSI)|_BV(SPI_SCK);
   SDCARD_CONTROL = 7;
-  SDCARD_DIVIDER = 135; /* 33.9MHz/136 = 249kHz */
+  SDCARD_DIVIDER = 158; /* 39.5MHz/159 = 249kHz */
   PORTB |= _BV(SPI_MOSI);
 }
 
 static __inline void sd_spi_enable()
 {
   SDCARD_CONTROL = 7;
-  SDCARD_DIVIDER = 2; /* 33.9MHz/3 = 11.3MHz */
+  SDCARD_DIVIDER = 2; /* 39.5MHz/3 = 13.2MHz */
   PORTB |= _BV(SPI_MOSI);
 }
 
