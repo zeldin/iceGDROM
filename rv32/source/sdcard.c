@@ -53,33 +53,19 @@ static uint8_t spi_recv_byte()
   return SDCARD_DATA;
 }
 
-static uint8_t sd_send_byte_crc7(uint8_t b, uint8_t crc) __attribute__((noinline));
-static uint8_t sd_send_byte_crc7(uint8_t b, uint8_t crc)
-{
-  uint8_t i;
-  spi_send_byte(b);
-  for(i=0; i<8; i++) {
-    crc <<= 1;
-    if ((b^crc) & 0x80)
-      crc ^= 9;
-    b <<= 1;
-  }
-  return crc;
-}
-
 static uint8_t sd_send_cmd_param(uint8_t cmd, uint32_t param)
 {
-  uint8_t crc = 0;
   uint8_t r1, cnt;
 
   PORTB &= ~_BV(SPI_CS);
   spi_recv_byte();
-  crc = sd_send_byte_crc7(0x40|cmd, crc);
-  crc = sd_send_byte_crc7(param>>24, crc);
-  crc = sd_send_byte_crc7(param>>16, crc);
-  crc = sd_send_byte_crc7(param>>8, crc);
-  crc = sd_send_byte_crc7(param, crc);
-  spi_send_byte((crc<<1)|1);
+  SDCARD_CRC7 = 0;
+  spi_send_byte(0x40|cmd);
+  spi_send_byte(param>>24);
+  spi_send_byte(param>>16);
+  spi_send_byte(param>>8);
+  spi_send_byte(param);
+  spi_send_byte(SDCARD_CRC7);
 
   if (cmd == 12)
     spi_send_byte(0xff);
@@ -231,14 +217,13 @@ static bool sd_try_read_block(uint32_t blk, uint8_t *ptr)
   if (r != 0xfe) {
     goto fail;
   }
-  SDCARD_CRC16HI = 0;
-  SDCARD_CRC16LO = 0;
+  SDCARD_CRC16 = 0;
   sd_xfer_block(ptr);
-  uint8_t crc1_hi = SDCARD_CRC16HI;
-  uint8_t crc1_lo = SDCARD_CRC16LO;
+  uint32_t crc1 = SDCARD_CRC16;
   uint8_t crc2_hi = spi_recv_byte();
   uint8_t crc2_lo = spi_recv_byte();
-  if (crc2_hi != crc1_hi || crc2_lo != crc1_lo)
+  uint32_t crc2 = (crc2_hi << 8) | crc2_lo;
+  if (crc2 != crc1)
     goto fail;
   PORTB |= _BV(SPI_CS);
   sd_spi_disable();

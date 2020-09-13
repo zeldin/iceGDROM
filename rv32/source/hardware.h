@@ -72,8 +72,8 @@
 #define SDCARD_CONTROL _MMIO_BYTE(0xfffee400)
 #define SDCARD_DATA    _MMIO_BYTE(0xfffee404)
 #define SDCARD_DIVIDER _MMIO_BYTE(0xfffee408)
-#define SDCARD_CRC16LO _MMIO_BYTE(0xfffee410)
-#define SDCARD_CRC16HI _MMIO_BYTE(0xfffee414)
+#define SDCARD_CRC16   _MMIO_WORD(0xfffee410)
+#define SDCARD_CRC7    _MMIO_BYTE(0xfffee414)
 
 #define CDDA_CONTROL   _MMIO_BYTE(0xfffee800)
 #define CDDA_READPOS   _MMIO_BYTE(0xfffee804)

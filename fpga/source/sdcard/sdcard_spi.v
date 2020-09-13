@@ -11,7 +11,8 @@ module sdcard_spi (
 		   input [4:0] bits,
 		   input start,
 		   output finished,
-		   output crc_bit,
+		   output crc_in_bit,
+		   output crc_out_bit,
 		   output crc_strobe,
 		  );
 
@@ -25,7 +26,8 @@ module sdcard_spi (
    assign    mosi = shift_out_q[7];
    assign    finished = active_q & ~active_d;
    assign    data_out = {shift_in_q[6:0], latch_q};
-   assign    crc_bit = latch_q;
+   assign    crc_in_bit = latch_q;
+   assign    crc_out_bit = shift_out_q[7];
    assign    crc_strobe = active_q & toggle & sclk_q;
 
    always @(posedge clk) begin
