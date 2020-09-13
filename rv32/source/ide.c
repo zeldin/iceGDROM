@@ -411,8 +411,8 @@ void IRQ3_vect(void)
 static uint32_t get_fad(const uint8_t *bytes, bool msf)
 {
   if (msf) {
-    uint16_t sec = bytes[0]*60+bytes[1];
-    return ((uint32_t)sec)*75+bytes[2];
+    uint32_t sec = bytes[0]*60+bytes[1];
+    return sec*75+bytes[2];
   } else {
     union { uint32_t fad; uint8_t b[4]; } u;
     u.b[0] = bytes[2];

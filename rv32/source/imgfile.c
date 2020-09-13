@@ -31,8 +31,9 @@ bool imgfile_init()
     return false;
 
   uint8_t i;
+  struct toc *t = &toc[0];
   for (i=0; i<imgheader.num_tocs; i++) {
-    if (!fatfs_read_header(&toc[i], sizeof(toc[i]), i+1))
+    if (!fatfs_read_header(t++, sizeof(*t), i+1))
       return false;
   }
 
@@ -99,9 +100,9 @@ static bool imgfile_seek_internal(uint32_t sec, uint8_t mode, bool data)
     uint32_t start = imgheader.regions[i].start_and_type & 0xffffff;
     if (sec >= start) {
       rmode = imgheader.regions[i].start_and_type >> 24;
-      blk = (sec-start)*147;
-      secoffs = (((uint8_t)blk)&31)<<3;
-      blk = (blk>>5)+imgheader.regions[i].fileoffs;
+      uint32_t wordoffs = (sec-start)*(2352/2);
+      secoffs = (uint8_t)wordoffs;
+      blk = (wordoffs>>8)+imgheader.regions[i].fileoffs;
     } else {
       if (!i)
 	return false;
