@@ -1,31 +1,13 @@
 verilog_defaults -add -noautowire
 verilog_defaults -add -Iavr/avr_core_v14/rtl/common_packs
 read_verilog top.v
+read_verilog vexriscv/core/VexRiscv.v
 hierarchy -top top \
 	-libdir ide \
 	-libdir ide/tech/ice40 \
 	-libdir cdda \
 	-libdir sdcard \
 	-libdir tech/ice40 \
-	-libdir avr \
-	-libdir avr/tech/ice40 \
-	-libdir avr/tech/generic \
-	-libdir avr/avr_core_v14/rtl/common \
-	-libdir avr/avr_core_v14/rtl/core \
-	-libdir avr/avr_core_v14/rtl/core/fast_adders \
-	-libdir avr/avr_core_v14/rtl/core/multiplier \
-	-libdir avr/avr_core_v14/rtl/avr_interconnect \
-	-libdir avr/avr_core_v14/rtl/pwr_on_rst_gen \
-	-libdir avr/avr_core_v14/rtl/ext_int_mod \
-	-libdir avr/avr_core_v14/rtl/pport \
-	-libdir avr/avr_core_v14/rtl/srctrl \
-	-libdir avr/avr_core_v14/rtl/smbus_mod \
-	-libdir avr/avr_core_v14/rtl/usart \
-	-libdir avr/avr_core_v14/rtl/spi_mod \
-	-libdir avr/avr_core_v14/rtl/wdt_mod \
-	-libdir avr/avr_core_v14/rtl/spm_mod \
-	-libdir avr/avr_core_v14/rtl/rsnc \
-	-libdir avr/avr_core_v14/rtl/rst_gen \
-	-libdir avr/avr_core_v14/rtl/TmrCnt \
-	-libdir avr/avr_core_v14/rtl/ram_data_rg
+	-libdir vexriscv \
+	-libdir avr
 synth_ice40

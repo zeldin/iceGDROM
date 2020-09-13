@@ -6,11 +6,11 @@ module cdda_interface (
 		       input clk,
 		       input rst,
 		       input[10:0] sram_a,
-		       input[7:0]  sram_d_in,
+		       input[31:0] sram_d_in,
 		       output[7:0] sram_d_out,
 		       input       sram_cs,
 		       input       sram_oe,
-		       input       sram_we,
+		       input[3:0]  sram_wstrb,
 		       output      sram_wait,
 		       input[7:0]  sdcard_dma_data,
 		       input[8:0]  sdcard_dma_addr,
@@ -30,8 +30,8 @@ module cdda_interface (
 
    wire [7:0]  cpu_access_pos;
    wire        cpu_writes_to_buffer;
-   wire        cpu_writes_left, cpu_writes_right;
-   wire        cpu_writes_high, cpu_writes_low;
+   wire        cpu_writes_left_low, cpu_writes_left_high;
+   wire        cpu_writes_right_low, cpu_writes_right_high;
 
    reg enabled_d, enabled_q;
    reg dso_enabled_d, dso_enabled_q;
@@ -43,16 +43,20 @@ module cdda_interface (
    reg [7:0] scratchpad_d, scratchpad_q;
 
    wire [9:0] write_addr;
-   wire [7:0] write_data;
+   wire [3:0] write_strobe;
+   wire [15:0] write_data_l;
+   wire [15:0] write_data_r;
    assign write_addr = (dma_mode_q? {dma_buffer_select_q, sdcard_dma_addr} : sram_a[9:0]);
-   assign write_data = (dma_mode_q? sdcard_dma_data : sram_d_in);
+   assign write_strobe = (dma_mode_q? 1 << sdcard_dma_addr[1:0] : sram_wstrb);
+   assign write_data_l = (dma_mode_q? {2{sdcard_dma_data}} : sram_d_in[15:0]);
+   assign write_data_r = (dma_mode_q? {2{sdcard_dma_data}} : sram_d_in[31:16]);
 
    assign cpu_access_pos = write_addr[9:2];
-   assign cpu_writes_to_buffer = (dma_mode_q? sdcard_dma_strobe : (sram_cs & sram_we & sram_a[10]));
-   assign cpu_writes_left = cpu_writes_to_buffer & ~write_addr[1];
-   assign cpu_writes_right = cpu_writes_to_buffer & write_addr[1];
-   assign cpu_writes_high = write_addr[0];
-   assign cpu_writes_low  = ~cpu_writes_high;
+   assign cpu_writes_to_buffer = (dma_mode_q? sdcard_dma_strobe : (sram_cs & sram_a[10]));
+   assign cpu_writes_left_low = cpu_writes_to_buffer & write_strobe[0];
+   assign cpu_writes_left_high = cpu_writes_to_buffer & write_strobe[1];
+   assign cpu_writes_right_low = cpu_writes_to_buffer & write_strobe[2];
+   assign cpu_writes_right_high = cpu_writes_to_buffer & write_strobe[3];
 
    digital_sound_output #(.CLK_FREQUENCY(CLK_FREQUENCY))
    dso_inst(.clk(clk), .rst(rst), .enabled(dso_enabled_q),
@@ -63,26 +67,26 @@ module cdda_interface (
 			     .read_addr(bufpos_q),
 			     .read_data(left_read_data),
 			     .write_addr(cpu_access_pos),
-			     .write_data({write_data, write_data}),
-			     .write_hi(cpu_writes_left & cpu_writes_high),
-			     .write_lo(cpu_writes_left & cpu_writes_low));
+			     .write_data(write_data_l),
+			     .write_hi(cpu_writes_left_high),
+			     .write_lo(cpu_writes_left_low));
 
    ide_data_buffer right_data(.clk(clk), .rst(rst),
 			      .read_addr(bufpos_q),
 			      .read_data(right_read_data),
 			      .write_addr(cpu_access_pos),
-			      .write_data({write_data, write_data}),
-			      .write_hi(cpu_writes_right & cpu_writes_high),
-			      .write_lo(cpu_writes_right & cpu_writes_low));
+			      .write_data(write_data_r),
+			      .write_hi(cpu_writes_right_high),
+			      .write_lo(cpu_writes_right_low));
 
    always @(*) begin
-      case (sram_a[1:0])
+      case (sram_a[3:2])
 	2'b00: sram_d = { 4'b0000, dma_buffer_select_q, dma_mode_q, underflow_q, enabled_q };
 	2'b01: sram_d = bufpos_q;
 	2'b10: sram_d = last_valid_data_q;
 	2'b11: sram_d = scratchpad_q;
 	default: sram_d = 0;
-      endcase // case (sram_a[1:0])
+      endcase // case (sram_a[3:2])
    end
 
    always @(*) begin
@@ -109,18 +113,18 @@ module cdda_interface (
 	   dso_enabled_d = dso_enabled_q;
       end
 
-      if (sram_cs & sram_we & ~sram_a[10]) begin
-	 case (sram_a[1:0])
+      if (sram_cs & sram_wstrb[0] & ~sram_a[10]) begin
+	 case (sram_a[3:2])
 	   2'b00: begin
 	      enabled_d = sram_d_in[0];
 	      if (sram_d_in[1]) underflow_d = 1'b0;
 	      dma_mode_d = sram_d_in[2];
 	      dma_buffer_select_d = sram_d_in[3];
 	   end
-	   2'b01: bufpos_d = sram_d_in;
-	   2'b10: last_valid_data_d = sram_d_in;
-	   2'b11: scratchpad_d = sram_d_in;
-	 endcase // case (sram_a[1:0])
+	   2'b01: bufpos_d = sram_d_in[7:0];
+	   2'b10: last_valid_data_d = sram_d_in[7:0];
+	   2'b11: scratchpad_d = sram_d_in[7:0];
+	 endcase // case (sram_a[3:2])
       end
    end
 

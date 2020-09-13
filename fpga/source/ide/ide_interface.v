@@ -15,12 +15,12 @@ module ide_interface (
 		      input       reset_,
 		      input       csel,
 		      input       clk,
-		      input[10:0]  sram_a,
-		      input[7:0]  sram_d_in,
-		      output[7:0] sram_d_out,
+		      input[10:0] sram_a,
+		      input[31:0] sram_d_in,
+		      output[31:0] sram_d_out,
 		      input       sram_cs,
 		      input       sram_oe,
-		      input       sram_we,
+		      input[3:0]  sram_wstrb,
 		      output      sram_wait,
 		      output      cpu_irq,
 		      input[7:0]  sdcard_dma_data,
@@ -84,12 +84,13 @@ module ide_interface (
 
    reg [8:0]   buffer_read_addr, buffer_write_addr;
    wire [15:0] buffer_read_data, buffer_read_data_a, buffer_read_data_b;
-   reg [15:0]  buffer_write_data;
-   reg         buffer_write_hi, buffer_write_lo;
+   reg [15:0]  buffer_write_data_a, buffer_write_data_b;
+   reg         buffer_write_hi_a, buffer_write_lo_a;
+   reg         buffer_write_hi_b, buffer_write_lo_b;
 
    reg [7:0]   busctl_oldold, busctl_old, busctl_cur;
 
-   assign buffer_read_data = (buffer_read_addr[8]? buffer_read_data_b : buffer_read_data_a);
+   assign buffer_read_data = (buffer_read_addr[0]? buffer_read_data_b : buffer_read_data_a);
 
    always @(posedge clk) begin
       if (rst) begin
@@ -175,7 +176,7 @@ module ide_interface (
    assign intrq_enabled = (~nien_q) & drv_selected;
    assign intrq_level = irq_q;
 
-   reg [7:0] sram_d;
+   reg [31:0] sram_d;
    assign sram_d_out = sram_d;
 
    generate
@@ -213,28 +214,27 @@ module ide_interface (
 
    always @(*) begin
       if (sram_a[10]) begin
-	 if (sram_a[0])
-	   sram_d = buffer_read_data[15:8];
-	 else
-	   sram_d = buffer_read_data[7:0];
-      end else
-	case (sram_a[3:0])
-	  4'b0000: sram_d = status_q;
-	  4'b0001: sram_d = error_q;
-	  4'b0010: sram_d = iocontrol_q;
-	  4'b0011: sram_d = iopos_q;
-	  4'b0100: sram_d = status_q;
-	  4'b0101: sram_d = iotarget_q;
-	  4'b0110: sram_d = { 2'b00, data_q, cmd_q, hrst_q, srst_q, nien_q, irq_q };
-	  4'b1001: sram_d = features_q;
-	  4'b1010: sram_d = seccnt_q;
-	  4'b1011: sram_d = secnr_q;
-	  4'b1100: sram_d = cyllo_q;
-	  4'b1101: sram_d = cylhi_q;
-	  4'b1110: sram_d = drvhead_q;
-	  4'b1111: sram_d = command_q;
-	  default: sram_d = 0;
-	endcase // case (sram_a[3:0])
+	 sram_d = { buffer_read_data_b, buffer_read_data_a };
+      end else begin
+	 sram_d[31:8] = 0;
+	 case (sram_a[5:2])
+	   4'b0000: sram_d[7:0] = status_q;
+	   4'b0001: sram_d[7:0] = error_q;
+	   4'b0010: sram_d[7:0] = iocontrol_q;
+	   4'b0011: sram_d[7:0] = iopos_q;
+	   4'b0100: sram_d[7:0] = status_q;
+	   4'b0101: sram_d[7:0] = iotarget_q;
+	   4'b0110: sram_d[7:0] = { 2'b00, data_q, cmd_q, hrst_q, srst_q, nien_q, irq_q };
+	   4'b1001: sram_d[7:0] = features_q;
+	   4'b1010: sram_d[7:0] = seccnt_q;
+	   4'b1011: sram_d[7:0] = secnr_q;
+	   4'b1100: sram_d[7:0] = cyllo_q;
+	   4'b1101: sram_d[7:0] = cylhi_q;
+	   4'b1110: sram_d[7:0] = drvhead_q;
+	   4'b1111: sram_d[7:0] = command_q;
+	   default: sram_d[7:0] = 0;
+	 endcase // case (sram_a[5:2])
+      end
    end
    
    always @(*) begin
@@ -285,14 +285,14 @@ module ide_interface (
       if (dma_mode & ~old_dmack & ~cur_dior & (iopos_q == iotarget_q)) begin
 	 dmarq_d = 1'b0; /* Last word, so negate DMARQ */
       end
-      if (sram_cs & sram_we & ~sram_a[10]) begin
-	 case (sram_a[3:0])
+      if (sram_cs & sram_wstrb[0] & ~sram_a[10]) begin
+	 case (sram_a[5:2])
 	   4'b0000: begin
-	      status_d = sram_d_in;
+	      status_d = sram_d_in[7:0];
 	      irq_d = 1'b1;
 	   end
-	   4'b0100: status_d = sram_d_in;
-	   4'b0001: error_d = sram_d_in;
+	   4'b0100: status_d = sram_d_in[7:0];
+	   4'b0001: error_d = sram_d_in[7:0];
 	   4'b0010: begin
 	      if (sram_d_in[7])
 		iocontrol_d[7] = ~iocontrol_q[7];
@@ -303,8 +303,8 @@ module ide_interface (
 		 dmarq_d = sram_d_in[2];
 	      end
 	   end
-	   4'b0011: iopos_d = sram_d_in;
-	   4'b0101: iotarget_d = sram_d_in;
+	   4'b0011: iopos_d = sram_d_in[7:0];
+	   4'b0101: iotarget_d = sram_d_in[7:0];
 	   4'b0110: begin
 	      if (sram_d_in[0])
 		irq_d = 1'b0;
@@ -317,17 +317,17 @@ module ide_interface (
 	      if (sram_d_in[5])
 		data_d = 1'b0;
 	   end
-	   4'b1011: secnr_d = sram_d_in;
+	   4'b1011: secnr_d = sram_d_in[7:0];
 	 endcase
       end
       if (bsy) begin
-	 if (sram_cs & sram_we & ~sram_a[10]) begin
-	    case (sram_a[3:0])
-	      4'b1001: features_d = sram_d_in;
-	      4'b1010: seccnt_d = sram_d_in;
-	      4'b1100: cyllo_d = sram_d_in;
-	      4'b1101: cylhi_d = sram_d_in;
-	      4'b1110: drvhead_d = sram_d_in;
+	 if (sram_cs & sram_wstrb[0] & ~sram_a[10]) begin
+	    case (sram_a[5:2])
+	      4'b1001: features_d = sram_d_in[7:0];
+	      4'b1010: seccnt_d = sram_d_in[7:0];
+	      4'b1100: cyllo_d = sram_d_in[7:0];
+	      4'b1101: cylhi_d = sram_d_in[7:0];
+	      4'b1110: drvhead_d = sram_d_in[7:0];
 	    endcase
 	 end
       end else if (write_cycle) begin
@@ -392,53 +392,62 @@ module ide_interface (
       end
    end
 
-   wire bus_data_write, avr_data_write;
+   wire bus_data_write, rv_data_write;
    assign bus_data_write = write_cycle & ({bus_cs1,bus_cs3,bus_addr} == 5'b01000) & pio_mode;
-   assign avr_data_write = sram_cs & sram_we & sram_a[10];
+   assign rv_data_write = sram_cs & sram_a[10];
 
    always @(*) begin
       if (iocontrol_q[0]) begin
-	 /* Bus writes, AVR reads */
-	 buffer_write_hi = bus_data_write;
-	 buffer_write_lo = bus_data_write;
+	 /* Bus writes, RISC-V reads */
+	 buffer_write_hi_a = bus_data_write && !iopos_q[0];
+	 buffer_write_lo_a = bus_data_write && !iopos_q[0];
+	 buffer_write_hi_b = bus_data_write && iopos_q[0];
+	 buffer_write_lo_b = bus_data_write && iopos_q[0];
 	 buffer_write_addr = {active_bank, iopos_q};
-	 buffer_write_data = dd_in;
+	 buffer_write_data_a = dd_in;
+	 buffer_write_data_b = dd_in;
 
 	 buffer_read_addr = {sram_a[9]^active_bank, sram_a[8:1]};
-       end else if(sdcard_dma_mode) begin
+      end else if(sdcard_dma_mode) begin
 	 /* Bus reads, SDCARD writes */
-	 buffer_write_hi = sdcard_dma_strobe & sdcard_dma_addr[0];
-	 buffer_write_lo = sdcard_dma_strobe & ~sdcard_dma_addr[0];
+	 buffer_write_hi_a = sdcard_dma_strobe & (sdcard_dma_addr[1:0] == 2'b01);
+	 buffer_write_lo_a = sdcard_dma_strobe & (sdcard_dma_addr[1:0] == 2'b00);
+	 buffer_write_hi_b = sdcard_dma_strobe & (sdcard_dma_addr[1:0] == 2'b11);
+	 buffer_write_lo_b = sdcard_dma_strobe & (sdcard_dma_addr[1:0] == 2'b10);
 	 buffer_write_addr = {sdcard_dma_bank^active_bank, sdcard_dma_addr[8:1]};
-	 buffer_write_data = {sdcard_dma_data, sdcard_dma_data};
+	 buffer_write_data_a = {sdcard_dma_data, sdcard_dma_data};
+	 buffer_write_data_b = {sdcard_dma_data, sdcard_dma_data};
 
 	 buffer_read_addr = {active_bank, iopos_q};
-       end else begin
-	 /* Bus reads, AVR writes */
-	 buffer_write_hi = avr_data_write & sram_a[0];
-	 buffer_write_lo = avr_data_write & ~sram_a[0];
+      end else begin
+	 /* Bus reads, RISC-V writes */
+	 buffer_write_hi_a = rv_data_write & sram_wstrb[1];
+	 buffer_write_lo_a = rv_data_write & sram_wstrb[0];
+	 buffer_write_hi_b = rv_data_write & sram_wstrb[3];
+	 buffer_write_lo_b = rv_data_write & sram_wstrb[2];
 	 buffer_write_addr = {sram_a[9]^active_bank, sram_a[8:1]};
-	 buffer_write_data = {sram_d_in, sram_d_in};
+	 buffer_write_data_a = sram_d_in[15:0];
+	 buffer_write_data_b = sram_d_in[31:16];
 
 	 buffer_read_addr = {active_bank, iopos_q};
-       end
+      end
    end
 
    ide_data_buffer buffer_inst_a(.clk(clk), .rst(rst),
-				 .read_addr(buffer_read_addr),
+				 .read_addr(buffer_read_addr[8:1]),
 				 .read_data(buffer_read_data_a),
-				 .write_addr(buffer_write_addr),
-				 .write_data(buffer_write_data),
-				 .write_hi(buffer_write_hi&~buffer_write_addr[8]),
-				 .write_lo(buffer_write_lo&~buffer_write_addr[8]));
+				 .write_addr(buffer_write_addr[8:1]),
+				 .write_data(buffer_write_data_a),
+				 .write_hi(buffer_write_hi_a),
+				 .write_lo(buffer_write_lo_a));
 
    ide_data_buffer buffer_inst_b(.clk(clk), .rst(rst),
-				 .read_addr(buffer_read_addr),
+				 .read_addr(buffer_read_addr[8:1]),
 				 .read_data(buffer_read_data_b),
-				 .write_addr(buffer_write_addr),
-				 .write_data(buffer_write_data),
-				 .write_hi(buffer_write_hi&buffer_write_addr[8]),
-				 .write_lo(buffer_write_lo&buffer_write_addr[8]));
+				 .write_addr(buffer_write_addr[8:1]),
+				 .write_data(buffer_write_data_b),
+				 .write_hi(buffer_write_hi_b),
+				 .write_lo(buffer_write_lo_b));
 
    ide_reset_generator reset_inst(.rst_in(reset_in), .clk(clk), .rst_out(rst));
 

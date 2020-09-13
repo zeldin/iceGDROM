@@ -2,21 +2,19 @@ ifeq ($(origin _),command line)
 
 SRC := $(SRCDIR)source
 
-PM_INIT_DIR := ../../avr/obj
+PM_INIT_DIR := ../../rv32/obj
 
-PM_INIT_LOW := $(PM_INIT_DIR)/pmem_low.hex
-PM_INIT_HIGH := $(PM_INIT_DIR)/pmem_high.hex
+PM_INIT := $(PM_INIT_DIR)/pmem.hex
 
-PM_FAKE_FILES := $(foreach f, $(PM_INIT_LOW) $(PM_INIT_HIGH), $(notdir $(f)).fake)
+PM_FAKE_FILES := $(foreach f, $(PM_INIT), $(notdir $(f)).fake)
 
 gdrom_hw_emulator_DEVICE := --hx8k --package ct256
 gdrom_hw_emulator_CONSTRAINT_FILE := $(SRC)/top.pcf
 gdrom_hw_emulator_SCRIPT := $(SRC)/top.yosys
 
-gdrom_hw_emulator_VERILOG_DEFS := PM_INIT_LOW="$(CURDIR)/pmem_low.hex.fake"
-gdrom_hw_emulator_VERILOG_DEFS += PM_INIT_HIGH="$(CURDIR)/pmem_high.hex.fake"
+gdrom_hw_emulator_VERILOG_DEFS := PM_INIT="$(CURDIR)/pmem.hex.fake"
 
-gdrom_hw_emulator_BRAM_FILES := $(PM_INIT_LOW) $(PM_INIT_HIGH)
+gdrom_hw_emulator_BRAM_FILES := $(PM_INIT)
 gdrom_hw_emulator_EXTRA_DEPS := $(PM_FAKE_FILES)
 
 ICEPROG_DEVICE ?=
@@ -36,8 +34,8 @@ tests :
 
 .SECONDARY:
 
-$(PM_FAKE_FILES): pmem_%.hex.fake :
-	icebram -g 8 4096 > $@
+$(PM_FAKE_FILES): %.hex.fake :
+	icebram -g 32 3072 > $@
 
 %.bin : %.txt
 	icepack $< $@
