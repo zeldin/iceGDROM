@@ -10,7 +10,7 @@ OBJCOPY = riscv32-unknown-elf-objcopy
 ABI = ilp32e
 ARCH = rv32emc
 
-CFLAGS = -Os -fomit-frame-pointer
+CFLAGS = -Os -fomit-frame-pointer -msmall-data-limit=100
 LDFLAGS = -Wl,--defsym,__stack=0x3000,-T,$(SRC)/main.lds,-Map,$@.map -nostartfiles -mrelax
 
 ALL_CFLAGS = -mabi=$(ABI) -march=$(ARCH) -I. -I$(SRC) $(CFLAGS)
