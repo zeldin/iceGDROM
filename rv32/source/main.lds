@@ -2,6 +2,7 @@ SECTIONS {
 	/DISCARD/ : {
 		*(.comment)
 		*(.riscv.attributes)
+		*(.debug*)
 	}
 	.memory : {
 		. = 0x000000;
