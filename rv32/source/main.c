@@ -32,17 +32,17 @@ void handle_sdcard()
 
   DEBUG_PUTS("[Card inserted]\n");
 
-  if (sd_init())
-    if (fatfs_mount())
-      if (find_imgfile())
-	if (imgfile_init()) {
-	  set_disk_type(imgheader.disk_type);
-	  PORTA = fatfs_filenumber;
-	  fatfs_next_filename();
-	} else {
-	  fatfs_reset_filename();
-	  PORTA = ~0;
-	}
+  if (sd_init() &&
+      fatfs_mount() &&
+      find_imgfile() &&
+      imgfile_init()) {
+    set_disk_type(imgheader.disk_type);
+    PORTA = fatfs_filenumber;
+    fatfs_next_filename();
+  } else {
+    fatfs_reset_filename();
+    PORTA = ~0;
+  }
 
   while (SDCARD_INSERTED) {
     service_ide();
