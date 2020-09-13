@@ -5,7 +5,7 @@ This is an implementation of IDE and the "Sega Packet Interface"
 as used by the Dreamcast GD-ROM drive, using an iCE40 FPGA.
 
 In addition to the IDE interface itself, and the accompanying CD-DA
-interface, the FPGA bitstream implements an AVR-compatible CPU and
+interface, the FPGA bitstream implements an RV32EMC-compatible CPU and
 an SD Card interface.  Software running on the CPU responds to
 disc access commands from the Dreamcast by fetching data from disc
 images on an SD Card.
@@ -50,10 +50,10 @@ To build the FPGA bitstream, the following tools are needed:
 * arachne-pnr
 * icestorm
 
-To build the AVR software, the following tools are needed:
+To build the RISC-V software, the following tools are needed:
 
-* avr-gcc 5.3.0
-* avr-binutils 2.25.1
+* riscv32-unknown-elf gcc 10.2.0
+* riscv32-unknown-elf binutils 2.34.0
 
 
 Building
@@ -61,9 +61,9 @@ Building
 
 Building is done by running GNU make.  Running make at the top level
 will build everything, running it in a subdir will build that part.
-Note that building in fpga requires the avr stuff to be build first.
+Note that building in fpga requires the rv32 stuff to be built first.
 
-The file `avr/source/config.h` can be modified to adapt to the polarity
+The file `rv32/source/config.h` can be modified to adapt to the polarity
 of the CD signal on the chosen SD Card module, or to enable debug traces
 on the serial port of the FTDI chip.
 
@@ -84,7 +84,7 @@ SD Card.  To switch between images, extract and reinsert the SD Card.
 Acknowledgements
 ----------------
 
-* AVR softcore was developed by Ruslan Lepetenok
+* RISC-V softcore "VexRiscv" was developed by Charles Papon
 * GD-ROM connector pinout was provided by OzOnE
 * SD Card and FAT code based on sdfatlib by Bill Greiman
 * DiscJuggler reader code based on CDIrip by DeXT/Lawrence Williams
