@@ -8,7 +8,7 @@ ASOURCES = start.S delay.S support.S
 CC = riscv32-unknown-elf-gcc
 OBJCOPY = riscv32-unknown-elf-objcopy
 ABI = ilp32e
-ARCH = rv32emc
+ARCH = rv32emc_zicsr
 
 CFLAGS = -Os -fomit-frame-pointer -msmall-data-limit=100
 LDFLAGS = -Wl,--defsym,__stack=0x3000,-T,$(SRC)/main.lds,-Map,$@.map -nostartfiles -mrelax
