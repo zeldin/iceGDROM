@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdint.h>
 
 #include "timer.h"
 #include "config.h"
