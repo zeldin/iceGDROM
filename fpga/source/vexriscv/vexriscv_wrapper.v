@@ -111,6 +111,8 @@ module vexriscv_wrapper (
 
    reg [31:0] ram[0:(mem_size*256)-1];
    reg [31:0] ram_read;
+   reg [13:0] ram_read_addr;
+   reg	      ram_read_enable;
 
    wire       dbus_ram_access;
    // assign dbus_ram_access = dBus_cmd_payload_address < mem_size * 1024;
@@ -124,17 +126,27 @@ module vexriscv_wrapper (
       end
    endgenerate
 
+   always @(*) begin
+      ram_read_enable = 1'b1;
+      ram_read_addr = 14'hx;
+      if (prog_mode) begin
+	 ram_read_addr = prog_addr >> 1;
+      end else if (!rst_out) begin
+	 if (dBus_cmd_valid && !dBus_cmd_payload_wr && dbus_ram_access)
+	   ram_read_addr = dBus_cmd_payload_address[15:2];
+	 else if (ibus_stalled)
+	   ram_read_addr = ibus_stall_pc;
+	 else if (iBus_cmd_valid)
+	   ram_read_addr = iBus_cmd_payload_pc[15:2];
+	 else
+	   ram_read_enable = 1'b0;
+      end else
+	ram_read_enable = 1'b0;
+   end
+
    always @(posedge clk)
-     if (prog_mode) begin
-	ram_read <= ram[prog_addr >> 1];
-     end else if (!rst_out) begin
-	if (dBus_cmd_valid && !dBus_cmd_payload_wr && dbus_ram_access)
-	  ram_read <= ram[dBus_cmd_payload_address[15:2]];
-	else if (ibus_stalled)
-	  ram_read <= ram[ibus_stall_pc];
-	else if (iBus_cmd_valid)
-	  ram_read <= ram[iBus_cmd_payload_pc[15:2]];
-     end
+     if (ram_read_enable)
+       ram_read <= ram[ram_read_addr];
 
 
    /* iBus */
